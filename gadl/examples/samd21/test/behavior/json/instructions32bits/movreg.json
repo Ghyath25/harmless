@@ -1,0 +1,32 @@
+{
+	"instruction": "MOV.W Rd, Rm",
+	"src":
+	{            	
+              "Rm" : {
+			"idx": ["r2","r9"],
+			"val": ["0x0", "0x4567a8cf", "0xffffffff", "0xabcd5679"]
+		}
+
+	},
+	
+	"dest":
+	{
+		"cpsr": {
+			"val": ["0x41000000","0x01000000", "0xF9000000"]
+		},
+
+		"Rd": {
+			"idx": ["r1","r5","r9"],
+			"val": [0, 12334, "0xffffffff"]
+		}
+	},
+
+	"init":
+	{
+		"sp": "0x8",
+		"lr": "0xdead"
+	},
+	"mnemo": "MOV.W {Rd}, {Rm}",
+	"size": 4
+}
+
