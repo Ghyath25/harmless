@@ -71,32 +71,33 @@ return result
 --SInt
 u32 SInt(u32 x)
 {
-u32 result:=0
-u32 i:=0
-loop 32 do 
-	if x{i}=1 then result := result+2^i
-	end if 
-	if x{31}=1 then result:=result-2^32
-	end if 
-  i:=i+1
-end loop 
-return result  
+return x
 }
 -------------------------------------------------------------------------------
 --UInt
 u32 UInt (u32 x)
 {
-u32 result:=0
+	return x
+}
+-------------------------------------------------------------------------------
+s32 SignInvert (s32 x) 
+{ 
 u32 i:=0
-loop 32 do
-	if x{i}=1 then 
-	result := result + 2^i
-	end if
-	i:=i+1
-	end loop
+s32 a
+loop 32 
+while (u1)(x{i}) != 1 do 
+i:=i+1
+end loop
+a:=x{i..0}
 
-return result 
-} 
+i:=i+1
+loop 32-i do 
+a:=(~x{i}) cat a 
+i:=i+1
+end loop 
+
+return a
+}
 -------------------------------------------------------------------------------
 --LSL_C
 u33 LSL_C(u32 x, u32 shift)
@@ -104,15 +105,15 @@ u33 LSL_C(u32 x, u32 shift)
 { u32 result 
   u1 carry_out
   u32 extended_x
-  u32 a
+  --u32 a
 	u32 n 
 --shift>0?
 	
-	a:=alu.zeros(shift) --zeros 
+	--a:=alu.zeros(shift) --zeros 
 
-	extended_x:= x cat a 
+	extended_x:= x<<shift 
 	result:= extended_x{31..0}
-	carry_out:=extended_x{31}
+	carry_out:=extended_x{32}
 
 return result cat carry_out
 } 
@@ -135,14 +136,15 @@ return result
 u33 LSR_C(u32 x, u32 shift)
 { u32 result 
   u1 carry_out
-  u32 extended_x
---shift>0?
-	
-	extended_x:= x<<shift 
-	result:= extended_x{shift+31..shift}
-	carry_out:=extended_x{shift-1}
+  u64 extended_x:= x
 
-return result cat carry_out
+ loop shift do 	
+ extended_x:= extended_x cat (u1)(0)
+ end loop 		
+ result:= extended_x{shift+31..shift}
+ carry_out:=extended_x{shift-1}
+
+ return result cat carry_out
 }
 ------------------------------------------------------------------------------
 --LSR
@@ -160,12 +162,16 @@ return result
 u33 ASR_C(u32 x, u32 shift)
 { u32 result 
   u1 carry_out
-  u32 extended_x
+  u64 extended_x --comment peut-on fixer la longueur de cette opérande 
   --shift>0?
-	
-	extended_x:= x<<shift --X considéré comme unsigned 
-	result:= extended_x{shift+31..shift}
-	carry_out:=extended_x{shift-1}
+ u32 a:=x{32}
+ u32 b  
+ loop shift do 
+ b:=b cat a 
+ end loop   
+ extended_x:= b cat x --X considéré comme unsigned 
+ result:= extended_x{shift+31..shift}
+ carry_out:=extended_x{shift-1}
 
 return result cat carry_out
 }
@@ -187,10 +193,9 @@ u33 ROR_C(u32 x, u32 shift)
  u32 m
  u1 carry_out 
  u32 result  
- u32 a:=alu.UInt(shift)
 
- m:= a-32*(a/32)
- result:= alu.LSR(x,m) --||alu.LSL(x,32-m)
+	m:=shift % 32
+ result:= alu.LSR(x,m) | alu.LSL(x,32-m)
  carry_out:=result{31}
 
 return result cat carry_out
@@ -230,46 +235,46 @@ return result
 }
 ------------------------------------------------------------------------------
 --SignedSatQ
-u33 SignedSatQ(u32 i, u32 n)
+s33 SignedSatQ(s32 i, u32 n)
 {  
- u1 saturated
- u32 result
+ s1 saturated
+ s32 result
+ s32 a:= (s1)(1) << (n-1) 
+ if i>a-(s1)(1) then 
+ result:= a-(s1)(1)
+ saturated:= (s1)(1)
 
- if (i>(2^(n-1)-1)) then 
- result:= 2^(n-1)-1
- saturated:= true
-
- elseif i<-(2^(n-1)) then 
- result:=-(2^(n-1))
- saturated:=true 
+ elseif i< alu.SignInvert(a) then 
+ result:= alu.SignInvert(a)
+ saturated:=(s1)(1) 
 
  else  
  result:=i 
- saturated:=false
+ saturated:=(s1)(0)
  end if  
  
  return result{31..0} cat saturated
 }
 ------------------------------------------------------------------------------
 --SignedSatQ16
-u17 SignedSatQ16(u16 i, u16 n)
+s17 SignedSatQ16(s16 i, u16 n)
 {  
- u1 saturated
- u16 result
+ s1 saturated
+ s16 result
+ s16 a:= (s1)(1) << (n-1) 
+ if i>a-(s1)(1) then 
+ result:= a-(s1)(1)
+ saturated:=(s1)(1)
 
- if (i>(2^(n-1)-1)) then 
- result:= 2^(n-1)-1
- saturated:= true
-
- elseif i<-(2^(n-1)) then 
- result:=-(2^(n-1))
- saturated:=true 
+ elseif i< alu.SignInvert(a) then 
+ result:= alu.SignInvert(a)
+ saturated:=(s1)(1) 
 
  else  
  result:=i 
- saturated:=false
+ saturated:=(s1)(0)
  end if  
- 
+
  return result{15..0} cat saturated
 }
 ------------------------------------------------------------------------------
@@ -277,14 +282,14 @@ u17 SignedSatQ16(u16 i, u16 n)
 u33 UnsignedSatQ(u32 i, u32 n)
 {  
  u1 saturated
- u16 result
-
- if i>(2^(n-1)-1) then 
- result:= 2^(n-1)-1
+ u32 result
+ u32 a:= 1<< n
+ if i>(a-1) then 
+ result:= a-1
  saturated:= true
 
- elseif i<-(2^(n-1)) then 
- result:=-(2^(n-1))
+ elseif i<0 then 
+ result:=0
  saturated:=true 
 
  else  
@@ -302,9 +307,9 @@ u17 UnsignedSatQ16(u16 i, u16 n)
 {  
  u1 saturated
  u16 result
-
- if i>(2^n-1) then 
- result:= 2^n-1
+ u16 a:= 1<< n
+ if i>(a-1) then 
+ result:= a-1
  saturated:= true
 
  elseif i<0 then 
@@ -315,7 +320,7 @@ u17 UnsignedSatQ16(u16 i, u16 n)
  result:=i 
  saturated:=false
  end if  
- 
+
  return result{15..0} cat saturated
 }
 ------------------------------------------------------------------------------
@@ -327,28 +332,6 @@ result:= alu.UnsignedSatQ16(i,n)
 return result
 } 
 ------------------------------------------------------------------------------
---ThumbExpandImmWithCarry
-u33 ThumbExpandImmWithCarry (u12 imm12)
-{
-u32 result
-u1 carryOut
-u32 unrotated_value 
-u32 imm8:= imm12 {7..0}
-
-if imm12{11..10}=0 then 
- if     imm12{9..8}=0 then result:=(u32)(imm8)
- elseif imm12{9..8}=1 then result:=imm8<<16 | imm8
- elseif imm12{9..8}=2 then result:=imm8<<24 | imm8<<8
- else   result:=imm8<<24|imm8<<16|imm8<<8|imm8 
- end if 
-carryOut :=CPSR.C
-else unrotated_value := (u32) ((u8)((u1)(1) cat imm12{6..0}))
-result:=alu.ROR_C(unrotated_value,alu.UInt(imm12{11..7})){32..1}
-carryOut:=alu.ROR_C(unrotated_value,alu.UInt(imm12{11..7})){0}
-end if 
-return result cat carryOut
-}
----------------------------------------------------------------------------
 --ThumbExpandImm
 u32 ThumbExpandImm(u12 imm12)
 {
@@ -361,7 +344,7 @@ return imm32
 
 u34 DecodeImmShift (u2 t , u5 imm5)
 {
-u3 shift_t
+u2 shift_t
 u32 shift_n
  if t=0 then 
   shift_t:=0
@@ -393,7 +376,7 @@ return shift_t cat shift_n
 }
 ------------------------------------------------------------------------------
 --Shift_C
-u33 Shift_C(u32 value, u3 typ, u32 amount, u1 carry_in)
+u33 Shift_C(u32 value, u2 typ, u32 amount, u1 carry_in)
 {
 u32 result 
 u1 carry_out 
@@ -425,22 +408,23 @@ return result cat carry_out
 }
 ------------------------------------------------------------------------------
 --Shift 
-u32 Shift(u32 value, u4 typ, u32 amount, u1 carry_in)
+u32 Shift(u32 value, u2 typ, u32 amount, u1 carry_in)
 {u32 result
 result:=alu.Shift_C(value, typ, amount, carry_in){32..1}
+return result 
 }
 ------------------------------------------------------------------------------
 --AddWithCarry
-u38 AddWithCarry(u32 x, u32 y, u1 carry_in)
+u34 AddWithCarry(u32 x, u32 y, u1 carry_in)
 {
-u36 unsigned_sum
-u36 signed_sum
-u36 result
+u32 unsigned_sum
+u32 signed_sum
+u32 result
 u1 carry_out
 u1 overflow  
 
- unsigned_sum:= alu.UInt(x) + alu.UInt(y) + alu.UInt(carry_in)
- signed_sum:=alu.SInt(x) + alu.SInt(y) + alu.UInt(carry_in)
+ unsigned_sum:= x + y + carry_in
+ signed_sum:=(u32)((s32)(x) + (s32)(y) + (s1)(carry_in))
  result:= unsigned_sum{31..0}
 
  if alu.UInt(result)=unsigned_sum then 
@@ -485,6 +469,7 @@ end if
 
 return result
 }
+
 ------------------------------------------------------------------------------
 ------------------------------------------------------------------------------
   u1 conditionPassed(u4 cond)
@@ -503,8 +488,7 @@ return result
     return result
   }
 
-<<<<<<< HEAD
-=======
+
   u33 ThumbExpandImmWithCarry(u12 imm12)
   {
     u32 result := 0
@@ -546,7 +530,7 @@ return result
     end if
     return result
   }
->>>>>>> fabe8d58b2f5d3c369029fc6b8115a5acf272327
+
 }
 
 component gpr {
@@ -1358,68 +1342,12 @@ behavior addimm #dataProcessingPI #add
   
 do 
   imm32:=(u32)(imm12)
-  result:=alu.addSub(gpr.read32(Rn),imm32, (u1)(0))
+  result:=alu.addSub(gpr.iread32(Rn),imm32, (u1)(0))
   gpr.write32(Rd,result)
 end do 
 
 end behavior
 
------------------------------------------------------------------
---addcmnreg 
-behavior addcmnreg #dataProcessingSR 
- field u4 Rd #Rd
- field u4 Rm #Rm
- field u4 Rn #Rn
- field u5 imm5 
- field u2 shiftType #shType 
- u34 src1
- u34 src2  
- u32 result
- u1 carry
- u1 overflow
- u1 shift_t
- u32 shift_n
- u32 shifted
-
-do 
- src1:=alu.DecodeImmShift(shiftType, imm5)  
- shift_t:=src1{33..32} 
- shift_n:=src1{31..0} 
-
- shifted:=alu.Shift(gpr.read32(Rm), shift_t, shift_n, CPSR.C){32..1}
-
- src2:=alu.AddWithCarry(gpr.read32(Rn), shifted, 0) 
- result:=src2{33..2}
- carry:=src2{1}
- overflow:=src2{0}
-end do 
- 
-select
-case #add 
-field u1 S
-do  
- u32 d:=alu.UInt(Rd)
-if d=15 then
- gpr.BranchWritePC(result) 
- else 
- gpr.write32(Rd,result)
-   if S then 
-   CPSR.N:=result{31}
-   CPSR.Z:=(result=0)
-   CPSR.C:=carry 
-   CPSR.V:=overflow
-   end if 
- end if
-end do 
-
-case #cmn do 
- CPSR.N:=result{31}
- CPSR.Z:=(result=0)
- CPSR.C:=carry 
- CPSR.V:=overflow
-end do
-end select 
-end behavior 
 -----------------------------------------------------------------
 --moveimm (encoding t3)
 behavior moveimm #move #dataProcessingPI
@@ -1436,19 +1364,21 @@ end behavior
 -----------------------------------------------------------------
 --movereg
 behavior movereg #move #dataProcessingSR
- field u8 imm16 #imm16
  field u4 Rd #Rd
  field u1 S 
- field u4 Rm #Rm 
+ field u4 Rm #Rm
+ field u5 imm5  
+ field u2 shiftType #shType  
+
  u32 result
 
 do 
- result:=gpr.read32(Rm)
+ result:=gpr.iread32(Rm)
  if (alu.UInt(Rd)=15) then 
  gpr.BranchWritePC(result)
  else 
   gpr.write32(Rd, result)
-  if S=1 then
+  if S then
     CPSR.N:=result{31}
     CPSR.Z:=(alu.BitCount(result)=0)
   end if 
@@ -1459,28 +1389,16 @@ end behavior
 -----------------------------------------------------------------
 --subimm (encoding t4)
 behavior subimm #sub #dataProcessinPI
- field u2 shiftType #shType
  field u4 Rn #Rn
  field u4 Rd #Rd
  field u12 imm12 #imm12
- field u4 Rm #Rm
- field u1 S
  u32 imm32
  u32 result
- u1 setflags:= 1
- u1 carry 
- u1 overflow
- u34 src1 
 
 do  
- imm32:= (u32)(imm12) 
- 
- src1:=alu.AddWithCarry(Rn,~imm32,(u1)(1))
- result:=src1{33..2} 
- carry:= src1{1}
- overflow:= src1{0}
-
-gpr.write32(Rd, result) 
+ imm32:= (u32)(imm12)  
+ result:=alu.addSub(gpr.iread32(Rn),~imm32+1,(u1)(1))
+ gpr.write32(Rd, result) 
 end do 
 end behavior 
 
@@ -1489,13 +1407,21 @@ end behavior
 behavior movtimm #dataProcessiongPI #movt 
  field u4 Rd #Rd
  field u16 imm16 #imm16
-
+ --u32 result 
 do 
-gpr.write32(Rd{31..16},imm16)
+--u32 a:=gpr.iread32(Rd)
+--u16 b:=\xffff
+--u32 c:=a & (u32)(b)
+--u32 d:=imm16 << 16
+--result:= d | c
+--gpr.write32(Rd,result)
+
+u32 a:= gpr.iread32(Rd)
+a{31..16}:= imm16
+gpr.write32(Rd,a) 
 end do 
 
 end behavior
-
 -----------------------------------------------------------------
 --dataProcSSAT 
 behavior dataProcSSAT #dataProcessingPI
@@ -1504,14 +1430,13 @@ behavior dataProcSSAT #dataProcessingPI
  field u5 imm5 
  field u2 shiftType #shType 
  field u5 sat_imm5
-  u32 saturate_t0 
+ u32 saturate_t0 
  u32 operand
- u32 result 
- u1 sat 
- u4 shift_t
+ u2 shift_t
  u32 shift_n 
  u34 src1
- u33 src2
+ u33 src3
+
 
 do 
  src1:=alu.DecodeImmShift(shiftType, imm5)
@@ -1524,17 +1449,17 @@ end do
 select 
 case #ssat do 
  saturate_t0:=alu.UInt(sat_imm5)+1
- src2:=alu.SignedSatQ(alu.SInt(operand),saturate_t0)
- result:=src2{32..1}
- sat:=src2{0}
+ s33 src2:=alu.SignedSatQ((s32)(operand),saturate_t0)
+ s32 result:=src2{32..1}
+ s1 sat:=src2{0}
 end do 
 
 case #usat do  --?signExtend
  saturate_t0:=alu.UInt(sat_imm5)
- src2:=alu.UnsignedSatQ(alu.SInt(operand),saturate_t0)
- result:=src2{32..1}
- sat:=src2{0}
- end do 
+ u33 src2:=alu.UnsignedSatQ(operand,saturate_t0)
+ u32 result:=src2{32..1}
+ u1 sat:=src2{0}
+end do 
 
 do
  gpr.write32(Rd,result)
@@ -1550,13 +1475,10 @@ end behavior
 behavior dataProcSSAT16 #dataProcessingPI
  field u4 Rn #Rn
  field u4 Rd #Rd
- field u5 imm5 
- field u2 shiftType #shType 
  field u5 sat_imm5
- u32 saturate_t0 
- u32 result 
- u4 shift_t
- u32 shift_n
+ --field u4 sat_imm
+ u16 saturate_t0 
+ u16 result 
  u16 result1
  u16 result2
  u1 sat1
@@ -1566,22 +1488,22 @@ behavior dataProcSSAT16 #dataProcessingPI
 select 
 case #ssat16 do  
  saturate_t0:=alu.UInt(sat_imm5)
- src1:=alu.SignedSatQ16(alu.SInt(gpr.iread32(Rn){15..0}),saturate_t0)
+ src1:=(u17)(alu.SignedSatQ16((s16)(gpr.iread32(Rn){15..0}),saturate_t0))
  result1:=src1{16..1}
  sat1:=src1{0}
  
- src2:=alu.SignedSatQ16(alu.SInt(gpr.read32(Rn){31..16}),saturate_t0)
+ src2:=(u17)(alu.SignedSatQ16((s16)(gpr.iread32(Rn){31..16}),saturate_t0))
  result2:=src2{16..1}
  sat2:=src2{0}
 end do 
  
 case #usat16 do 
  saturate_t0:=alu.UInt(sat_imm5)
- src1:=alu.UnsignedSatQ16(alu.SInt(gpr.iread32(Rn){15..0}),saturate_t0)
+ src1:=(u17)(alu.UnsignedSatQ16(gpr.iread32(Rn){15..0},saturate_t0))
  result1:=src1{16..1}
  sat1:=src1{0}
  
- src2:=alu.UnsignedSatQ16(alu.SInt(gpr.read32(Rn){31..16}),saturate_t0)
+ src2:=(u17)(alu.UnsignedSatQ16(gpr.iread32(Rn){31..16},saturate_t0))
  result2:=src2{16..1}
  sat2:=src2{0}
 end do 
@@ -1598,7 +1520,7 @@ end do
 
 end behavior
 -----------------------------------------------------------------
---dataProcBitFieldSetClear  
+--bfcbfiimm 
 behavior bfcbfiimm #dataProcessiongPI
  field u4 Rd #Rd  
  field u3 imm5 #imm5
@@ -1612,7 +1534,7 @@ behavior bfcbfiimm #dataProcessiongPI
 
 select 
 case #bfc do 
- src:=gpr.read32(Rd)
+ src:=gpr.iread32(Rd)
   if msbit>=lsbit then 
    a:= 0<<msbit-lsbit+1
    src{msbit..lsbit}:=a
@@ -1623,8 +1545,8 @@ end do
 case #bfi  
  field u4 Rn #Rn
 do  
- src1:=gpr.read32(Rd)
- src2:=gpr.read32(Rn)
+ src1:=gpr.iread32(Rd)
+ src2:=gpr.iread32(Rn)
   if msbit>=lsbit then 
    src1{msbit..lsbit}:=src2{msbit-lsbit..0}
    gpr.write32(Rd,src1)
@@ -1647,7 +1569,7 @@ do
  widthminus1:=alu.UInt(widthm1)
  msbit:=lsbit+widthminus1
  if msbit <= 31 then 
- gpr.write32 (Rd, (u32)(gpr.read32(Rn){msbit..lsbit}))
+ gpr.write32 (Rd, (u32)(gpr.iread32(Rn){msbit..lsbit}))
  end if 
 end do 
 end behavior
@@ -1668,7 +1590,7 @@ behavior sbfximm #dataProcessiongPI #sbfx
 do 
  msbit:=lsbit+widthminus1
  a:=msbit << widthminus1 + i
- b:= gpr.read32(Rn) 
+ b:= gpr.iread32(Rn) 
  if msbit <= 31 then 
   loop (31-msbit+1) do    
    a:=0   
@@ -1698,13 +1620,13 @@ end do
 
 select 
 case #tst do
- result:= (gpr.read32(Rn) & imm32)
+ result:= (gpr.iread32(Rn) & imm32)
 end do 
 
 case #and
  field u4 Rd #Rd 
  do
- result:= (gpr.read32(Rn) & imm32)
+ result:= (gpr.iread32(Rn) & imm32)
  gpr.write32(Rd, result)
 end do
 end select  
@@ -1737,7 +1659,7 @@ do
  shift_t := src2{33..32} 
  shift_n := src2{31..0} 
 
- src3:= alu.Shift_C(gpr.read32(Rm), shift_t, shift_n, CPSR.C) 
+ src3:= alu.Shift_C(gpr.iread32(Rm), shift_t, shift_n, CPSR.C) 
  shifted := src3{32..1}
  carry := src3{0}
 end do 
@@ -1746,12 +1668,12 @@ select
 case #and
  field u4 Rd #Rd 
  do
- result:=gpr.read32(Rn) & shifted 
+ result:=gpr.iread32(Rn) & shifted 
  gpr.write32(Rd, result)
 end do 
 
 case #tst do 
- result:=gpr.read32(Rn) & shifted 
+ result:=gpr.iread32(Rn) & shifted 
 end do 
 end select 
 
@@ -1786,7 +1708,7 @@ behavior bicimm #dataProcessingMI #bic
  imm32:=src1{32..1}
  carry:=src1{0}
  
- result:=(gpr.read32(Rn) & ~(imm32))
+ result:=(gpr.iread32(Rn) & ~(imm32))
  gpr.write32(Rd, result)
 
  CPSR.N:=result{31}
@@ -1816,10 +1738,10 @@ do
  shift_t:=src2{33..32} 
  shift_n:=src2{31..0} 
 
- src3:=alu.Shift_C(gpr.read32(Rm), shift_t, shift_n, CPSR.C)
+ src3:=alu.Shift_C(gpr.iread32(Rm), shift_t, shift_n, CPSR.C)
  shifted := src3{32..1}
  carry := src3{0}
- result:=gpr.read32(Rn) & ~shifted 
+ result:=gpr.iread32(Rn) & ~shifted 
 
  if S then 
  CPSR.N:=result{31}
@@ -1848,7 +1770,7 @@ end do
 
 select 
 case #orr do 
- result:= (gpr.read32(Rn) | imm32)
+ result:= (gpr.iread32(Rn) | imm32)
 end do 
 
 case #mov do 
@@ -1887,11 +1809,11 @@ do
  shift_t:=src2{33..32} 
  shift_n:=src2{31..0} 
  
- src3:= alu.Shift_C(gpr.read32(Rm), shift_t, shift_n, CPSR.C)
+ src3:= alu.Shift_C(gpr.iread32(Rm), shift_t, shift_n, CPSR.C)
  shifted:=src3{32..1}
  carry:=src3{0}
 
- result:=gpr.read32(Rn) | shifted 
+ result:=gpr.iread32(Rn) | shifted 
  gpr.write32(Rd, result)
 
  if S=1 then 
@@ -1921,7 +1843,7 @@ end do
 
 select 
 case #orn do  
- result:= gpr.read32(Rn) | ~(imm32) 
+ result:= gpr.iread32(Rn) | ~(imm32) 
 end do
  
 case #mvn do 
@@ -1960,14 +1882,14 @@ do
  shift_t:=src2{33..32} 
  shift_n:=src2{31..0} 
 
- src3:=alu.Shift_C(gpr.read32(Rm), shift_t, shift_n, CPSR.C) 
+ src3:=alu.Shift_C(gpr.iread32(Rm), shift_t, shift_n, CPSR.C) 
  shifted:=src3{32..1}
  carry:=src3{0}
 end do 
 
 select 
 case #orn do 
- result:=gpr.read32(Rn) | ~shifted 
+ result:=gpr.iread32(Rn) | ~shifted 
 end do 
 case #mvn do
  result:= ~ shifted
@@ -2003,12 +1925,12 @@ end do
 
 select 
 case #eor do  
-result:=(gpr.read32(Rn)) ^ imm32 
+result:=(gpr.iread32(Rn)) ^ imm32 
  gpr.write32(Rd, result)
 end do 
 
 case #teq do
- result:=(gpr.read32(Rn)) ^ imm32 
+ result:=(gpr.iread32(Rn)) ^ imm32 
 end do 
 
 do 
@@ -2043,19 +1965,19 @@ do
  shift_t:=src2{33..32} 
  shift_n:=src2{31..0} 
 
- src3:=alu.Shift_C(gpr.read32(Rm), shift_t, shift_n, CPSR.C)
+ src3:=alu.Shift_C(gpr.iread32(Rm), shift_t, shift_n, CPSR.C)
  shifted:=src3{32..1}
  carry:=src3{0}
 end do 
 
 select 
 case #eor do 
- result:= gpr.read32(Rn) ^ shifted 
+ result:= gpr.iread32(Rn) ^ shifted 
  gpr.write32(Rd, result)
 end do 
 
 case #teq do 
-result:= gpr.read32(Rn) ^ shifted 
+result:= gpr.iread32(Rn) ^ shifted 
 end do 
 end select 
 
@@ -2084,7 +2006,7 @@ behavior addcmnimm #dataProcessingMI
 do 
   imm32:= alu.ThumbExpandImm(imm12)
 
-  src1:=alu.AddWithCarry(gpr.read32(Rn),imm32,0)
+  src1:=alu.AddWithCarry(gpr.iread32(Rn),imm32,0)
   result:=src1{33..2}
   carry:=src1{1}
   overflow:=src1{0} 
@@ -2121,7 +2043,7 @@ behavior adcimm #adc #dataProcessingMI
 do  
  imm32:= alu.ThumbExpandImm(imm12)
 
- src1:=alu.AddWithCarry(gpr.read32(Rn),imm32,0)
+ src1:=alu.AddWithCarry(gpr.iread32(Rn),imm32,0)
  result:=src1{33..2}
  carry:=src1{1}
  overflow:=src1{0}
@@ -2157,9 +2079,9 @@ do
  shift_t:=src2{33..32} 
  shift_n:=src2{31..0}
  
- shifted:=alu.Shift(gpr.read32(Rm), shift_t, shift_n, CPSR.C){32..1}
+ shifted:=alu.Shift(gpr.iread32(Rm), shift_t, shift_n, CPSR.C){32..1}
 
- src3:=alu.AddWithCarry(gpr.read32(Rn), shifted, CPSR.C)
+ src3:=alu.AddWithCarry(gpr.iread32(Rn), shifted, CPSR.C)
  result:=src3{33..2}
  carry:=src3{1}
  overflow:= src3{0}
@@ -2192,7 +2114,7 @@ behavior sbcimm #sbc #dataProcessingMI
 
 do 
  imm32:= alu.ThumbExpandImm(imm12)
- src1:= alu.AddWithCarry(gpr.read32(Rn),~imm32,0)
+ src1:= alu.AddWithCarry(gpr.iread32(Rn),~imm32,0)
  result:= src1{33..2}
  carry:= src1{1}
  overflow:= src1{0}
@@ -2229,9 +2151,9 @@ do
  shift_t:=src2{33..32} 
  shift_n:=src2{31..0} 
 
- shifted:=alu.Shift(gpr.read32(Rm), shift_t, shift_n, CPSR.C){32..1}
+ shifted:=alu.Shift(gpr.iread32(Rm), shift_t, shift_n, CPSR.C){32..1}
 
- src3:=alu.AddWithCarry(gpr.read32(Rn), ~ shifted, CPSR.C) 
+ src3:=alu.AddWithCarry(gpr.iread32(Rn), ~ shifted, CPSR.C) 
  result:=src3{33..2}
  carry:=src3{1} 
  overflow:=src3{0}
@@ -2265,7 +2187,7 @@ behavior cmpsubimm #dataProcessingMI
 do --sub encording T3 
  imm32:= alu.ThumbExpandImm(imm12)
 
- src1:=alu.AddWithCarry(gpr.read32(Rn),~ imm32,1)
+ src1:=alu.AddWithCarry(gpr.iread32(Rn),~ imm32,1)
  result:=src1{33..2}
  carry:=src1{1}
  overflow:=src1{0}
@@ -2310,9 +2232,9 @@ do
  shift_t:=src2{33..32} 
  shift_n:=src2{31..0}
  
- shifted:=alu.Shift(gpr.read32(Rm), shift_t, shift_n, CPSR.C){32..1}
+ shifted:=alu.Shift(gpr.iread32(Rm), shift_t, shift_n, CPSR.C){32..1}
 
- src3:=alu.AddWithCarry(gpr.read32(Rn), ~ shifted, 1)
+ src3:=alu.AddWithCarry(gpr.iread32(Rn), ~ shifted, 1)
  result:=src3{33..2}
  carry:=src3{1}
  overflow:= src3{0}
@@ -2352,7 +2274,7 @@ behavior rsbimm #rsb #dataProcesingMI
 do 
  imm32:= alu.ThumbExpandImm(imm12)
 
- src1:=alu.AddWithCarry(~ gpr.read32(Rn),imm32,1)
+ src1:=alu.AddWithCarry(~ gpr.iread32(Rn),imm32,1)
  result:=src1{33..2}
  carry:=src1{1}
  overflow:=src1{0}
@@ -2389,9 +2311,9 @@ do
  shift_t:=src2{33..32} 
  shift_n:=src2{31..0} 
 
- shifted:=alu.Shift(gpr.read32(Rm), shift_t, shift_n, CPSR.C){32..1}
+ shifted:=alu.Shift(gpr.iread32(Rm), shift_t, shift_n, CPSR.C){32..1}
 
- src3:=alu.AddWithCarry(~gpr.read32(Rn), shifted, 1)
+ src3:=alu.AddWithCarry(~gpr.iread32(Rn), shifted, 1)
  result:=src3{33..2}
  carry:=src3{1}
  overflow:=src3{0}
@@ -2433,13 +2355,13 @@ do
  shift_t:=src1{33..32} 
  shift_n:=src1{31..0} 
 
- operand2 := alu.Shift(gpr.read32(Rm), shift_t, shift_n, CPSR.C)
+ operand2 := alu.Shift(gpr.iread32(Rm), shift_t, shift_n, CPSR.C)
 
  if tbform then 
- result1:=(u32)(gpr.read32(Rn) cat operand2{15..0}) 
+ result1:=(u32)(gpr.iread32(Rn) cat operand2{15..0}) 
  gpr.write32(Rd ,result)
  else 
- result1:=(u32)(operand2 cat gpr.read32(Rn))
+ result1:=(u32)(operand2 cat gpr.iread32(Rn))
  gpr.write32(Rd, result1)
  end if 
 end do 
