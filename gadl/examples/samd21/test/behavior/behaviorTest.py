@@ -309,6 +309,9 @@ def generateGdbScript(args, filename, inst, codeCases, runCases):
             for reg in inst['init']:
                 if reg in regDict:
                     gdb.write('set $'+reg+'='+str(inst['init'][reg])+'\n')
+                    gdb.write('set $'+reg+'='+str(inst['init'][reg])+'\n')
+                    gdb.write('set $'+reg+'='+str(inst['init'][reg])+'\n')
+                    gdb.write('set $'+reg+'='+str(inst['init'][reg])+'\n')
                 else:
                     addr = getInt(reg)
                     val = inst['init'][reg]
@@ -754,5 +757,6 @@ if __name__ == '__main__':
             nbInstructions += 1
         else: # assembly only
             subprocess.call(["arm-none-eabi-objdump", "-d", filename+'.elf'],)
-    debugStr(args,0,str(nbTestsDone)+' tests done for '+str(nbInstructions)+' instructions in {t:.2f}s, ok at {p:.1f}%.\n'.format(t=(time.clock()-timeStart),p=(100*nbTestsDone)/nbTests))
+    if nbTests != 0:
+        debugStr(args,0,str(nbTestsDone)+' tests done for '+str(nbInstructions)+' instructions in {t:.2f}s, ok at {p:.1f}%.\n'.format(t=(time.clock()-timeStart),p=(100*nbTestsDone)/nbTests))
 
