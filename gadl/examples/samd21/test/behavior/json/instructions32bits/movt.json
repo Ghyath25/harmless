@@ -1,5 +1,5 @@
 {
-	"instruction": "MOVT Rd #imm16",
+	"instruction": "MOVT Rd, #imm16",
 	"src":
 	{            	
                "imm16": {
@@ -10,9 +10,6 @@
 	
 	"dest":
 	{
-		"cpsr": {
-			"val": ["0x41000000","0x01000000", "0xF9000000"]
-		},
 
 		"Rd": {
 			"idx": ["r1","r5","r9"],

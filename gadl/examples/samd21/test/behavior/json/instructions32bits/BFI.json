@@ -3,7 +3,7 @@
 	"src":
 	{            	
                 "Rn" : {
-			"idx": ["r0","r2","r7"],
+			"idx": ["r0","r7"],
 			"val": ["0", "0xffffffff", "0xac533c5a", "0xaaaa5555"]
 		},                
 
@@ -24,14 +24,14 @@
 	"dest":
 	{
 		"Rd": {
-			"idx": ["r1","r5","r9"],
+			"idx": ["r1","r9"],
 			"val": [0, 12334, "0xffffffff"]
 		}
 	},
 
 	"init":
 	{
-		"sp": "0x8",
+		"sp": "0x20003000",
 		"lr": "0xdead"
 	},
 	"mnemo": "BFI {Rd}, {Rn}, #{lsb}, #{width} ",
