@@ -1,5 +1,5 @@
 {
-	"instruction": "ORN Rd, Rn, Rm, shift",
+	"instruction": "adc.w Rd, Rn, Rm, shift",
 	"src":
 	{
 		"Rm" : {
@@ -35,10 +35,7 @@
 		"sp": "0x8",
 		"lr": "0xdead"
 	},
-<<<<<<< HEAD:gadl/examples/samd21/test/behavior/json/instructions32bits/ornreg.json
-	"mnemo": "ORN {Rd}, {Rn}, {Rm},{type} #{shift}",
-=======
 	"mnemo": "adc{flags}.w {Rd}, {Rn}, {Rm},{type} #{shift}",
->>>>>>> 38bbd8eac40da85ec5590d0476b0e3ac26437973:gadl/examples/samd21/test/behavior/json/adc3reg.json
 	"size": 4
 }
+
