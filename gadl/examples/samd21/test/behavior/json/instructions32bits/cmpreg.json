@@ -1,5 +1,5 @@
 {
-	"instruction": "CMP.W Rn,Rm, #shift",
+	"instruction": "CMP.W Rn,Rm, shift",
 	"src":
 	{      
                "Rm" : {
