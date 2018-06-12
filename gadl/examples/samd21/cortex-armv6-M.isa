@@ -511,16 +511,21 @@ return result
   {
     u32 result
     if     typeShift = 0  then result := val << imm5 -- lsl
+      --carryOut:=result{32}
+
     elseif typeShift = 1  then -- lsr
       if imm5 > 0  then 
         result := val >> imm5
-      else result := 0
+        --carryOut:=result{imm5-1}
+     else result := 0
       end if
     elseif typeShift = 2  then --asr
       if(imm5 > 0) then 
         result := (u32)((s32)(val) >> imm5)
       else if result{31} then result := \xffffffff else result := 0 end if
       end if
+   --carryOut:=result{imm5-1}
+
     elseif typeShift = 3  then
       if imm5 = 0 then -- rrx
         result := carry cat (val >> 1)
@@ -528,6 +533,8 @@ return result
         result := val ror imm5
       end if
     end if
+--carryOut:=result{0}
+
     return result
   }
 
@@ -1717,40 +1724,6 @@ behavior bicimm #dataProcessingMI #bic
  end do 
 end behavior 
 ------------------------------------------------------------------
---bicreg 
-behavior bicreg #dataProcessingSR #bic   
- field u4 Rd #Rd 
- field u4 Rn #Rn
- field u4 Rm #Rm
- field u5 imm5 
- field u2 shiftType #shType
- field u1 S 
- u1 result
- u1 carry 
- u32 shift_n
- u2 shift_t
- u32 shifted 
- u34 src2
- u33 src3
-
-do 
- src2:=alu.DecodeImmShift(shiftType, imm5)
- shift_t:=src2{33..32} 
- shift_n:=src2{31..0} 
-
- src3:=alu.Shift_C(gpr.iread32(Rm), shift_t, shift_n, CPSR.C)
- shifted := src3{32..1}
- carry := src3{0}
- result:=gpr.iread32(Rn) & ~shifted 
-
- if S then 
- CPSR.N:=result{31}
- CPSR.Z:=(result=0)
- CPSR.C:=carry 
- end if 
-end do 
-end behavior 
-------------------------------------------------------------------
 --orrmovimm
 behavior orrmovimm #dataProcessingMI 
  field u4 Rd #Rd 
@@ -2158,91 +2131,12 @@ do
 end do 
 end behavior
  
-----------------------------------------------------------------------------
---rsbreg
-behavior rsbreg #rsb #dataProcesingSR 
- field u4 Rd #Rd 
- field u4 Rn #Rn
- field u4 Rm #Rm 
- field u5 imm5 #imm5
- field u2 shiftType #shType 
- field u1 S
- u32 result
- u32 imm32
- u1 carry 
- u32 shift_n
- u2 shift_t
- u32 shifted
- u1 overflow
- u34 src2, src3
-
-do  
- src2:=alu.DecodeImmShift(shiftType, imm5)
- shift_t:=src2{33..32} 
- shift_n:=src2{31..0} 
-
- shifted:=alu.Shift(gpr.iread32(Rm), shift_t, shift_n, CPSR.C){32..1}
-
- src3:=alu.AddWithCarry(~gpr.iread32(Rn), shifted, 1)
- result:=src3{33..2}
- carry:=src3{1}
- overflow:=src3{0}
-
- gpr.write32(Rd, result)
-
- if S then 
- CPSR.N:=result{31}
- CPSR.Z:=(result=0)
- CPSR.C:=carry 
- CPSR.V:=overflow
- end if 
-end do
-end behavior 
- 
-------------------------------------------------------------------------------
---andreg
-behavior andreg #and #dataProcessingSR 
- field u4 Rn #Rn 
- field u4 Rd #Rd
- field u4 Rm #Rm 
- field u2 shiftType #shType 
- field u5 imm5 #imm5
- field u1 S  
- field u1 tb
- u32 shift_n
- u2 shift_t
- u32 shifted 
- u1 carry 
- u32 result 
- u34 src1
-
-do 
- u1 tbform:=(tb=1)
- u32 operand2 
- u32 result1 
-
- src1:=alu.DecodeImmShift((u2)(tb cat 0), imm5)
- shift_t:=src1{33..32} 
- shift_n:=src1{31..0} 
-
- operand2 := alu.Shift(gpr.iread32(Rm), shift_t, shift_n, CPSR.C)
-
- if tbform then 
- result1:=(u32)(gpr.iread32(Rn) cat operand2{15..0}) 
- gpr.write32(Rd ,result)
- else 
- result1:=(u32)(operand2 cat gpr.iread32(Rn))
- gpr.write32(Rd, result1)
- end if 
-end do 
-
-end behavior 
 -----------------------------------------------------------------------------
 -----------------------------------------------------------------------------
-behavior addCmnReg #dataProcessingSR #shType
+behavior addCmnReg #dataProcessingSR
   field u4 Rm #Rm
   field u4 Rn #Rn
-  field u2 shiftType
+  field u2 shiftType #shType
   field u5 imm5
   field u1 S -- setFlags
   do 
@@ -2260,41 +2154,93 @@ behavior addCmnReg #dataProcessingSR #shType
       do
 				u32 result := alu.addSub(gpr.iread32(Rn),shifted+CPSR.C, S)
         gpr.write32(Rd,  result)
-      end do 
-   
+      end do    
     case #cmn
       do alu.addSub(gpr.iread32(Rn),shifted,S) end do
-  end select
-end behavior
--------------------------------------------------------------------------
-behavior subCmpReg #dataProcessingSR #shType
-  field u4 Rm #Rm
-  field u4 Rn #Rn
-  field u2 shiftType
-  field u5 imm5
-  field u1 S -- setFlags
-  do 
-    u32 shifted := alu.shift(gpr.iread32(Rm),shiftType,imm5, CPSR.C)
- end do
-  select
-   case #sub 
+    case #sub 
       field u4 Rd #Rd
       do
 				u32 result := alu.addSub(gpr.iread32(Rn),~shifted+1,S)
         gpr.write32(Rd, result)
       end do
-   case #cmp
+    case #cmp
        do	alu.addSub(gpr.iread32(Rn),~shifted+1,S) end do
-   case #sbc 
+    case #sbc 
       field u4 Rd #Rd
       do
-				u32 a := alu.addSub(gpr.iread32(Rn),~shifted+1,S)
-        u32 result := alu.addSub(a,~CPSR.C+1,S)
+				u32 result := alu.addSub(gpr.iread32(Rn),~shifted+1+(~(~CPSR.C)+1),S)
         gpr.write32(Rd, result)
       end do
-  end select 
- end behavior
-
+    case #rsb 
+      field u4 Rd #Rd
+      do
+				u32 result := alu.addSub(~(gpr.iread32(Rn))+1,shifted,S)
+        gpr.write32(Rd, result)
+      end do
+  end select
+end behavior
+-------------------------------------------------------------------------
+ behavior andreg #dataProcessingSR
+  field u4 Rm #Rm
+  field u4 Rn #Rn
+  field u2 shiftType #shType
+  field u5 imm5
+  field u1 S -- setFlags
+  u32 result  
+ do 
+    u32 shifted := alu.shift(gpr.iread32(Rm),shiftType,imm5, CPSR.C)
+  end do
+  select
+    case #and
+      field u4 Rd #Rd
+      do
+				result := gpr.iread32(Rn) & shifted 
+        gpr.write32(Rd, result)
+      end do  
+    case #tst  
+    case #bic
+       field u4 Rd #Rd
+        do 
+        result := gpr.iread32(Rn) & ~shifted 
+        gpr.write32(Rd, result)
+				end do 
+    case #orr
+       field u4 Rd #Rd
+        do 
+        result := gpr.iread32(Rn) | shifted 
+        gpr.write32(Rd, result)
+        end do 
+  	case #orn 
+       field u4 Rd #Rd
+        do 
+        result := gpr.iread32(Rn) | ~shifted 
+        gpr.write32(Rd, result)
+				end do 
+    case #mvn 
+       field u4 Rd #Rd
+        do 
+        result := ~shifted 
+        gpr.write32(Rd, result)
+				end do 
+		case #eor 
+        field u4 Rd #Rd
+				do  
+      	result:=(gpr.iread32(Rn)) ^ shifted 
+			  gpr.write32(Rd, result)
+ 				end do 
+		case #teq 
+				do  
+      	result:=(gpr.iread32(Rn)) ^ shifted 
+        end do 
+	end select 
+       do 
+        if S then
+         CPSR.N:=result{31}
+         CPSR.Z:=(result=0)
+--       CPSR.C:=carry --comment je peux obtenir le carry 
+        end if       
+       end do
+  end behavior 
 --##==================================================
 --## Format description
 --##==================================================

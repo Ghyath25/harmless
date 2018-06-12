@@ -3,15 +3,14 @@
 	"src":
 	{      
                "Rm" : {
-			"idx": ["r2","r9"],
-			"val": ["0", "0x4567a8cf", "0xffffffff", "0xabcd5679"]
+			"idx": ["r1","r9"],
+			"val": ["0", "0xffffffff", "0xacb53c5a", "0x29c5a1bf"]
 		},
  
 		"Rn" : {
-			
-                        "idx": ["r0","r2","r7"],			
-                        "val": ["0", "0xffffffff", "0xac533c5a", "0xaaaa5555"]
-		},                
+			"idx": ["r0","r7"],
+			"val": ["0", "0xffffffff", "0x2aaa5555", "0xb29c7f2a"]
+		},             
 
                 "type" : {
 			"idx": ["lsl", "lsr", "asr", "ror"]
@@ -20,6 +19,7 @@
 		"shift" : {
 			"imm": [0, 4, 31]
 		}
+          
 	},
 	
 	"dest":
@@ -33,7 +33,7 @@
 
 	"init":
 	{
-		"sp": "0x8",
+		"sp": "0x20003000",
 		"lr": "0xdead"
 	},
 	"mnemo": "CMPW {Rn}, {Rm},{type}, #{shift} ",
