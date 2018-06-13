@@ -505,7 +505,6 @@ return result
     end if
     return result cat carryOut
   }
-  
   -- warning => not the same shift instruction as in reference manual (DDI0403E)
   u32 shift(u32 val, u2 typeShift, u5 imm5, u1 carry)
   {
@@ -541,7 +540,41 @@ return result
 
     return result --catcarryout 
   }
+------------------------------------------------------------------------
+  u32 shiftWithCarry(u32 val, u2 typeShift, u5 imm5, u1 carry, out u1 carryOut)
+  {
+    u32 result
+    if  typeShift = 0  then result := val << imm5 -- lsl
+    carryOut:=result{32}
+    elseif typeShift = 1  then -- lsr
+      if imm5 > 0  then 
+      result := val >> imm5
+      else result := 0
+      carryOut:=result{imm5-1}
+      end if
+    elseif typeShift = 2  then --asr
+      if(imm5 > 0) then 
+      result := (u32)((s32)(val) >> imm5)
+      else if result{31} then result := \xffffffff else result := 0 end if
+      carryOut:=result{imm5-1}
+      end if
+      carryOut:=result{imm5-1}
 
+    elseif typeShift = 3  then
+      if imm5 = 0 then -- rrx
+        result := carry cat (val >> 1)
+        carryOut:=val{0}
+
+      else --ror
+        result := val ror imm5
+        carryOut:=result{31}
+
+      end if
+    end if
+
+    return result 
+  }
+------------------------------------------------------------------------
 }
 
 component gpr {
@@ -1356,11 +1389,11 @@ end do
 select 
 	case #add --t4
 		do 
-  		result:=alu.addSub(gpr.iread32(Rn),imm32, (u1)(0))
+  		result:=alu.addWithCarry(gpr.iread32(Rn),imm32, (u1)(0),(u1)(0))
 		end do 
 	case #sub --t4
 		do 
-  		result:=alu.addSub(gpr.iread32(Rn),~imm32+1,(u1)(0))
+  		result:=alu.addWithCarry(gpr.iread32(Rn),~imm32,(u1)(1),(u1)(0))
 		end do  
 do 
 	gpr.write32(Rd,result)
@@ -2049,9 +2082,10 @@ end behavior
   field u2 shiftType #shType
   field u5 imm5
   field u1 S -- setFlags
-  u32 result  
- do 
-    u32 shifted := alu.shift(gpr.iread32(Rm),shiftType,imm5, CPSR.C)
+  u32 result
+  u1 carryOut
+	u32 shifted
+  do shifted := alu.shiftWithCarry(gpr.iread32(Rm),shiftType,imm5, CPSR.C, carryOut)
   end do
   select
     case #and
@@ -2100,7 +2134,7 @@ end behavior
         if S then
          CPSR.N:=result{31}
          CPSR.Z:=(result=0)
-       --CPSR.C:=carry 
+         CPSR.C:=carryOut
         end if       
        end do
   end behavior 
