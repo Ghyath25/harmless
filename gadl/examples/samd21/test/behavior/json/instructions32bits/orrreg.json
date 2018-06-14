@@ -3,9 +3,9 @@
 	"src":
 	{                   
                 "Rm" : {
-			"idx": ["r2","r8"],
-			"val": ["0", "0x4567a8cf", "0xffffffff", "0xabcd5679"]
-		}, 
+			"idx": ["r1","r9"],
+			"val": ["0", "0xffffffff", "0xacb53c5a", "0x29c5a1bf"]
+		},
          	
                 "Rn" : {
 			
@@ -19,6 +19,9 @@
                
                 "shift" : {
 			"imm": [0, 4, 31]
+		},
+		"flags" : {
+			"idx": ["s", ""]
 		}
 	},
 	
@@ -28,18 +31,18 @@
 			"val": ["0x41000000","0x01000000", "0xF9000000"]
 		},
 
-                 "Rd": {
-			"idx": ["r1","r5","r9"],
-			"val": [0, 12334, "0xffffffff"]
+                  "Rd": {
+			"idx": ["r2","r10"],
+			"val": [0, "0xffffffff"]		
 		}			
 	},
 
 	"init":
 	{
-		"sp": "0x8",
+		"sp": "0x20003000",
 		"lr": "0xdead"
 	},
-	"mnemo": "orr.w {Rd}, {Rn}, {Rm}, {type} #{shift} ",
+	"mnemo": "orr{flags}.w {Rd}, {Rn}, {Rm}, {type} #{shift} ",
 	"size": 4
 }
 

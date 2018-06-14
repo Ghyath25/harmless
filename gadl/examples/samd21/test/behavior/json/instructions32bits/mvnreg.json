@@ -1,10 +1,10 @@
 {
-	"instruction": "MVN.W Rd,Rm, shift",
+	"instruction": "mnv.w Rd,Rm, shift",
 	"src":
 	{   
          	"Rm" : {
-			"idx": ["r2","r9"],
-			"val": ["0", "0x4567a8cf", "0xffffffff", "0xabcd5679"]
+			"idx": ["r1","r9"],
+			"val": ["0", "0xffffffff", "0xacb53c5a", "0x29c5a1bf"]
 		},
                
 		"type" : {
@@ -12,7 +12,9 @@
 		},
                 "shift" : {
 			"imm": [0, 4, 31]
-		}
+		},
+		"flags" : {
+			"idx": ["s", ""]
 	},
 	
 	"dest":
@@ -22,17 +24,17 @@
 		},
 
                  "Rd": {
-			"idx": ["r1","r5","r9"],
-			"val": [0, 12334, "0xffffffff"]
+			"idx": ["r2","r10"],
+			"val": [0, "0xffffffff"]		
 		}			
 	},
 
 	"init":
 	{
-		"sp": "0x8",
+		"sp": "0x20003000",
 		"lr": "0xdead"
 	},
-	"mnemo": "MVN.W {Rd},{Rm},{type} #{shift} ",
+	"mnemo": "mnv{flags}.w {Rd},{Rm},{type} #{shift} ",
 	"size": 4
 }
 
