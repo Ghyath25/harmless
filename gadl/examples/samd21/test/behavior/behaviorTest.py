@@ -757,12 +757,8 @@ if __name__ == '__main__':
             nbInstructions += 1
         else: # assembly only
             subprocess.call(["arm-none-eabi-objdump", "-d", filename+'.elf'],)
-<<<<<<< HEAD
-    debugStr(args,0,str(nbTestsDone)+' tests done for '+str(nbInstructions)+' instructions in {t:.2f}s\n'.format(t=(time.clock()-timeStart)))
-#ok at {p:.1f}%.\n'.format(t=(time.clock()-timeStart),p=(100*nbTestsDone)/nbTests))
 
-=======
     if nbTests != 0:
         debugStr(args,0,str(nbTestsDone)+' tests done for '+str(nbInstructions)+' instructions in {t:.2f}s, ok at {p:.1f}%.\n'.format(t=(time.clock()-timeStart),p=(100*nbTestsDone)/nbTests))
->>>>>>> fabe8d58b2f5d3c369029fc6b8115a5acf272327
+
 

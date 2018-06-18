@@ -3,10 +3,10 @@
 	"src":
 	{            	
               "Rm" : {
-			"idx": ["r0","r11"],
-			"val": ["0x0", "0x4567a8cf", "0xffffffff", "0xabcd5679"]
+			"idx": ["r0","r7"],
+			"val": ["0", "0xffffffff", "0xacb53c5a"]
 		}
-
+		   
 	},
 	
 	"dest":
@@ -15,9 +15,9 @@
 			"val": ["0x41000000","0x01000000", "0xF9000000"]
 		},
 
-		"Rd": {
-			"idx": ["r1","r5"],
-			"val": [0, 12334, "0xffffffff"]
+		"Rd" : {
+			"idx": ["r1","r9"],
+			"val": ["0", "0xffffffff", "0xbc43385a"]
 		}
 	},
 
