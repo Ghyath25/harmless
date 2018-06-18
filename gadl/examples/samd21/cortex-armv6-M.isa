@@ -2076,7 +2076,7 @@ behavior addSubCmnCmp #dataProcessingSR
   end select
 end behavior
 -------------------------------------------------------------------------
--- behavior andOrrOrnMvn #dataProcessingSR
+--behavior andOrrOrnMvn #dataProcessingSR
 --  field u4 Rm #Rm
 --  field u4 Rn #Rn
 --  field u2 shiftType #shType
@@ -2112,7 +2112,7 @@ end behavior
 --        do 
 --        result := gpr.iread32(Rn) | ~shifted 
 --        gpr.write32(Rd, result)
---				end do 
+--				end do   
 --    case #mvn 
 --       field u4 Rd #Rd
 --        do 
