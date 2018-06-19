@@ -235,51 +235,59 @@ return result
 }
 ------------------------------------------------------------------------------
 --SignedSatQ
-s33 SignedSatQ(s32 i, u32 n)
+s32 SignedSatQ(s32 i, u32 n)
 {  
- s1 saturated
+ u1 saturated
  s32 result
  s32 a:= (s1)(1) << (n-1) 
  if i>a-(s1)(1) then 
  result:= a-(s1)(1)
- saturated:= (s1)(1)
+ saturated:= 1
 
  elseif i< alu.SignInvert(a) then 
  result:= alu.SignInvert(a)
- saturated:=(s1)(1) 
+ saturated:=1 
 
  else  
  result:=i 
- saturated:=(s1)(0)
- end if  
+ saturated:=0
+ end if 
+
+  if saturated=1 then 
+  CPSR.Q:=1
+  end if 
  
- return result{31..0} cat saturated
+ return result
 }
 ------------------------------------------------------------------------------
 --SignedSatQ16
-s17 SignedSatQ16(s16 i, u16 n)
+s16 SignedSatQ16(s16 i, u16 n)
 {  
- s1 saturated
+ u1 saturated
  s16 result
  s16 a:= (s1)(1) << (n-1) 
  if i>a-(s1)(1) then 
  result:= a-(s1)(1)
- saturated:=(s1)(1)
+ saturated:=1
 
  elseif i< alu.SignInvert(a) then 
  result:= alu.SignInvert(a)
- saturated:=(s1)(1) 
+ saturated:=1 
 
  else  
  result:=i 
- saturated:=(s1)(0)
+ saturated:=0
  end if  
+ 
+	if saturated then 
+	CPSR.Q:=1
+	end if 
 
- return result{15..0} cat saturated
+ return result 
 }
 ------------------------------------------------------------------------------
 --UnsignedSatQ  
-u33 UnsignedSatQ(u32 i, u32 n)
+u32 UnsignedSatQ(u32 i, u32 n)
 {  
  u1 saturated
  u32 result
@@ -296,14 +304,17 @@ u33 UnsignedSatQ(u32 i, u32 n)
  result:=i 
  saturated:=false
  end if  
+
+ if saturated then 
+	CPSR.Q:=1
+	end if
+
  
- return result{31..0} cat saturated
+ return result
 }
-
-
 ------------------------------------------------------------------------------
 --UnsignedSatQ16  
-u17 UnsignedSatQ16(u16 i, u16 n)
+u16 UnsignedSatQ16(u16 i, u16 n)
 {  
  u1 saturated
  u16 result
@@ -321,7 +332,11 @@ u17 UnsignedSatQ16(u16 i, u16 n)
  saturated:=false
  end if  
 
- return result{15..0} cat saturated
+	if saturated then 
+	CPSR.Q:=1
+	end if
+
+ return result
 }
 ------------------------------------------------------------------------------
 --UnsignedSat16
@@ -1395,10 +1410,10 @@ select
 		do 
   		result:=alu.addWithCarry(gpr.iread32(Rn),~imm32, 1 , 0)
 		end do  
+end select 
 do 
 	gpr.write32(Rd,result)
 end do 
-end select 
 end behavior
 -----------------------------------------------------------------
 --moveimm (encoding t3)
@@ -1441,10 +1456,10 @@ end behavior
 
 -----------------------------------------------------------------
 --movtimm
-behavior movtimm #dataProcessiongPI #movt 
+behavior movtimm #dataProcessingPI #movt 
  field u4 Rd #Rd
  field u16 imm16 #imm16
- --u32 result 
+ u32 result 
 do 
 --u32 a:=gpr.iread32(Rd)
 --u16 b:=\xffff
@@ -1453,9 +1468,10 @@ do
 --result:= d | c
 --gpr.write32(Rd,result)
 
-u32 a:= gpr.iread32(Rd)
-a{31..16}:= imm16
-gpr.write32(Rd,a) 
+	u32 a:= gpr.iread32(Rd)
+	a{31..16}:= imm16
+	gpr.write32(Rd,a) 
+
 end do 
 
 end behavior
@@ -1468,41 +1484,29 @@ behavior dataProcSSAT #dataProcessingPI
  field u2 shiftType #shType 
  field u5 sat_imm5
  u32 saturate_t0 
- u32 operand
+
  u2 shift_t
  u32 shift_n 
  u34 src1
  u33 src3
 
-
 do 
- src1:=alu.DecodeImmShift(shiftType, imm5)
- shift_t:=src1{33..32}
- shift_n:=src1{31..0}
-
- operand:=alu.Shift(Rn,shift_t,shift_n,CPSR.C)
+ u32 operand := alu.shift(gpr.iread32(Rn),shiftType,imm5, CPSR.C)
 end do
 
 select 
 case #ssat do 
  saturate_t0:=alu.UInt(sat_imm5)+1
- s33 src2:=alu.SignedSatQ((s32)(operand),saturate_t0)
- s32 result:=src2{32..1}
- s1 sat:=src2{0}
+ s32 result:=alu.SignedSatQ((s32)(operand),saturate_t0)
 end do 
 
 case #usat do  --?signExtend
  saturate_t0:=alu.UInt(sat_imm5)
- u33 src2:=alu.UnsignedSatQ(operand,saturate_t0)
- u32 result:=src2{32..1}
- u1 sat:=src2{0}
+ u32 result:=alu.UnsignedSatQ(operand,saturate_t0)
 end do 
 
 do
  gpr.write32(Rd,result)
- if sat=1 then 
-  CPSR.Q:=1 
- end if 
 end do 
 
 end select 
@@ -1518,41 +1522,24 @@ behavior dataProcSSAT16 #dataProcessingPI
  u16 result 
  u16 result1
  u16 result2
- u1 sat1
- u1 sat2
- u17 src1, src2
 
 select 
 case #ssat16 do  
- saturate_t0:=alu.UInt(sat_imm5)
- src1:=(u17)(alu.SignedSatQ16((s16)(gpr.iread32(Rn){15..0}),saturate_t0))
- result1:=src1{16..1}
- sat1:=src1{0}
- 
- src2:=(u17)(alu.SignedSatQ16((s16)(gpr.iread32(Rn){31..16}),saturate_t0))
- result2:=src2{16..1}
- sat2:=src2{0}
+ saturate_t0:=alu.UInt(sat_imm5)+1
+ result1:=(u16)(alu.SignedSatQ16((s16)(gpr.iread32(Rn){15..0}),saturate_t0))
+ result2:=(u16)(alu.SignedSatQ16((s16)(gpr.iread32(Rn){31..16}),saturate_t0))
 end do 
  
 case #usat16 do 
  saturate_t0:=alu.UInt(sat_imm5)
- src1:=(u17)(alu.UnsignedSatQ16(gpr.iread32(Rn){15..0},saturate_t0))
- result1:=src1{16..1}
- sat1:=src1{0}
- 
- src2:=(u17)(alu.UnsignedSatQ16(gpr.iread32(Rn){31..16},saturate_t0))
- result2:=src2{16..1}
- sat2:=src2{0}
+ result1:=(u17)(alu.UnsignedSatQ16(gpr.iread32(Rn){15..0},saturate_t0)) 
+ result2:=(u17)(alu.UnsignedSatQ16(gpr.iread32(Rn){31..16},saturate_t0))
 end do 
 end select 
 
 do 
  result:= result2 cat result1 --?signExtend
  gpr.write32(Rd,result) 
-
- if sat1 || sat2 then 
- CPSR.Q:=1
- end if
 end do 
 
 end behavior

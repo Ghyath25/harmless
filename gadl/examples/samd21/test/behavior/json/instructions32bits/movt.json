@@ -3,7 +3,7 @@
 	"src":
 	{            	
                "imm16": {
-			"imm": ["0x0", "0xaa","0xabcd", "0xfeab", "0xffff"]
+			"imm": ["0x0","0xabcd", "0xfeab", "0xffff"]
 		}
 
 	},
@@ -12,14 +12,14 @@
 	{
 
 		"Rd": {
-			"idx": ["r1","r5","r9"],
+			"idx": ["r1","r9"],
 			"val": [0, 12334, "0xffffffff"]
 		}
 	},
 
 	"init":
 	{
-		"sp": "0x8",
+		"sp":"0x20003000",
 		"lr": "0xdead"
 	},
 	"mnemo": "MOVT {Rd}, #{imm16}",

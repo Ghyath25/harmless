@@ -3,13 +3,13 @@
 	"src":
 	{            	
                "imm5": {
-			"imm": ["0x01", "0x17", "0x1b", "0x1f"]
+			"imm": ["0x01", "0x17", "0x1f"]
 		},
 
-                "Rn" : {
-			"idx": ["r0","r8"],
-			"val": ["0", "0xffffffff", "0xac533c5a"]
-                },
+               "Rn" : {
+			"idx": ["r0","r7"],
+			"val": ["0", "0xffffffff", "0x2aaa5555"]
+		},
              
                 "type" : {
 			"idx": ["lsl", "asr"]
