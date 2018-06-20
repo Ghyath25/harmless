@@ -1,28 +1,25 @@
 {
-	"instruction": "MOVT Rd #imm16",
+	"instruction": "MOVT Rd, #imm16",
 	"src":
 	{            	
                "imm16": {
-			"imm": ["0x0", "0xaa","0xabcd", "0xfeab", "0xffff"]
+			"imm": ["0x0","0xabcd", "0xfeab", "0xffff"]
 		}
 
 	},
 	
 	"dest":
 	{
-		"cpsr": {
-			"val": ["0x41000000","0x01000000", "0xF9000000"]
-		},
 
 		"Rd": {
-			"idx": ["r1","r5","r9"],
+			"idx": ["r1","r9"],
 			"val": [0, 12334, "0xffffffff"]
 		}
 	},
 
 	"init":
 	{
-		"sp": "0x8",
+		"sp":"0x20003000",
 		"lr": "0xdead"
 	},
 	"mnemo": "MOVT {Rd}, #{imm16}",
