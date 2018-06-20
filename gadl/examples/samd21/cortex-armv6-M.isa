@@ -2072,7 +2072,7 @@ end behavior
 -------------------------------------------------------------------------
 --behavior andOrrOrnMvn #dataProcessingSR
 --  field u4 Rm #Rm
---  field u4 Rn #Rn
+---  field u4 Rn #Rn
 --  field u2 shiftType #shType
 --  field u5 imm5
 --  field u1 S -- setFlags
@@ -2084,7 +2084,7 @@ end behavior
 --  select
 --    case #and
 --      field u4 Rd #Rd
---      do
+--     do
 --				result := gpr.iread32(Rn) & shifted 
 --       gpr.write32(Rd, result)
 --      end do  
@@ -2095,7 +2095,7 @@ end behavior
 --        result := gpr.iread32(Rn) & ~shifted 
 --       gpr.write32(Rd, result)
 --				end do 
---    case #orr
+--   case #orr
 --       field u4 Rd #Rd
 --        do 
 --        result := gpr.iread32(Rn) | shifted 
