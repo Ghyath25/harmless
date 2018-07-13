@@ -2691,10 +2691,88 @@ format Instruction32	 -- p A5.135 (ARM DDI 0403E.b)
     case \m11_000---0_- is storeSingleDateItem      --A5-147
     case \m11_00----1_- is loadMemHints             --A5-146 (byte) A5-145 (half)
     case \m11_010----_- is dataProcReg              --A5-150
+    case \m11_0110---_- is multiplyOps              --A5-154
+    case \m11_0111---_- is longMultiplyOps          --A5-154
   end select
 end format
 
 --
+format longMultiplyOps
+  select slice{6..4}{7..4} -- op1/op2
+    case \m0-0_0000 is #long #mul Rn4 Rm4 Rd4 Ra4 --Rd4 <-> RdHi, Ra4 <-> RdLo
+    case \m0-1_1111 is #long #div Rn4 Rm4 Rd4 
+      restrict slice{-}{15..12} to \m1111
+    case \m1-0_0000 is #long #acc #mul Rn4 Rm4 Rd4 Ra4 --Rd4 <-> RdHi, Ra4 <-> RdLo
+      restrict slice{-}{7..4} to \m0000
+    case \m100_10-- is #long #acc #mul #signed #halfword
+      halfwordPartRm halfwordPartRn
+      Rn4 Rm4 Rd4 Ra4 --Rd4 <-> RdHi, Ra4 <-> RdLo
+    case \m100_110- is #long #acc #mul #signed #dual      mulSwap Rn4 Rm4 Rd4 Ra4 --Rd4 <-> RdHi, Ra4 <-> RdLo
+    case \m101_110- is #long #acc #mul #signed #dual #sub mulSwap Rn4 Rm4 Rd4 Ra4 --Rd4 <-> RdHi, Ra4 <-> RdLo
+    case \m110_0110 is #long #acc #mul #unsigned #acc2    Rn4 Rm4 Rd4 Ra4 --Rd4 <-> RdHi, Ra4 <-> RdLo
+  end select
+  select slice {5}{-}
+    case 0 is #signed
+    case 1 is #unsigned
+  end select
+end format
+
+format multiplyOps
+  restrict slice {-}{7..6} to \m00
+  select slice{6..4}{5..4} -- op1/op2
+    case \m000_00 is #mul Rd4 Rn4 Rm4 mulAccRa15
+    case \m000_01 is #mul #sub #acc Rd4 Rn4 Rm4 Ra4
+    case \m001_-- is #mul #signed #halfword 
+      Rn4 Rd4 Rm4 mulAccRa15 halfwordPartRn halfwordPartRm
+    case \m010_0- is #mul #signed #dual
+      Rn4 Rd4 Rm4 mulAccRa15 mulSwap
+    case \m011_0- is #mul #signed #word #halfword halfwordPartRm
+      Rn4 Rd4 Rm4 mulAccRa15
+    case \m100_0- is #mul #signed #sub #dual
+      Rn4 Rd4 Rm4 mulAccRa15 mulSwap
+    case \m101_0- is #mul #signed #msw
+      Rn4 Rd4 Rm4 mulAccRa15 mulRound
+    case \m110_0- is #mul #signed #sub #acc #msw
+      Rn4 Rd4 Rm4 Ra4 mulRound
+    case \m111_00 is #unsigned #sum #diff
+      Rn4 Rd4 Rm4 mulAccRa15
+  end select
+end format
+
+format mulRound
+  select slice{-}{4} --R
+    case 0 is #noRound
+    case 1 is #round
+  end select
+end format
+
+format mulSwap
+  select slice{-}{4} --M
+    case 0 is #noSwap
+    case 1 is #Swap
+  end select
+end format
+
+format halfwordPartRn
+  select slice{-}{5} --N
+    case 0 is #NB -- Rn: bottom halfword
+    case 1 is #NT -- Rn: top halfword
+  end select
+end format
+
+format halfwordPartRm
+  select slice{-}{4} --M
+    case 0 is #MB -- Rm: bottom halfword
+    case 1 is #MT -- Rm: top halfword
+  end select
+end format
+
+format mulAccRa15 -- accumulate on mul instruction if Ra=15
+  select slice{-}{15..12} --Ra
+    case \b1111 is #noAcc
+    others      is #acc    Ra4
+  end select
+end format
 
 format dataProcReg
   restrict slice{-}{15..12} to \m1111
@@ -2706,7 +2784,62 @@ format dataProcReg
         case \m10 is #asr
         case \m11 is #ror
 		  end select
+    case \m0---_1--- is #extend
+      select slice {4}{-}
+        case 0 is #signed
+        case 1 is #unsigned
+      end select
+      select slice {6..5}{-}
+        case 0 is #halfword
+        case 1 is #byte16
+        case 2 is #byte
+      end select
+      select slice {3..0}{-}
+        case \b1111 is #noAdd
+        others      is #add
+      end select
+      Rn4 Rd4 Rm4 
+      restrict slice{-}{6} to \m0
+      rotate := slice{-}{5..4} << 3
+    case \m1---_0--- is parallelAddSub
+    case \m10--_10-- is miscops
   end select
+end format
+
+format miscops
+  select slice{5..4}{5..4} -- op1/op2
+    case \b0000 is #saturate #add #noDouble Rd4 Rn4 Rm4
+    case \b0001 is #saturate #add #double   Rd4 Rn4 Rm4
+    case \b0010 is #saturate #sub #noDouble Rd4 Rn4 Rm4
+    case \b0011 is #saturate #sub #double   Rd4 Rn4 Rm4
+    case \b0100 is #reverse #word             Rd4 Rn4 --Rn4 should be equal to Rm4 :/
+    case \b0101 is #reverse #halfword #packed Rd4 Rn4 --Rn4 should be equal to Rm4 :/
+    case \b0110 is #reverse #bits             Rd4 Rn4 --Rn4 should be equal to Rm4 :/
+    case \b0111 is #reverse #halfword #signed Rd4 Rn4 --Rn4 should be equal to Rm4 :/
+    case \b1000 is #sel Rd4 Rn4 Rm4
+    case \b1100 is #clz Rd4 Rn4 --Rn4 should be equal to Rm4 :/
+  end select
+end format
+
+format parallelAddSub #parallel
+  select slice {-}{6}
+    case 0 is #signed
+    case 1 is #unsigned
+  end select
+  select slice{6..4}{-} -- op1
+    case \m001 is #add16
+    case \m010 is #addsub
+    case \m110 is #subadd
+    case \m101 is #sub16
+    case \m000 is #add8
+    case \m100 is #sub8
+  end select
+  select slice{-}{5..4} -- op2
+    case 0 is #normal
+    case 1 is #saturate
+    case 2 is #halving
+  end select
+  Rd4 Rn4 Rm4
 end format
 
 --
@@ -2842,6 +2975,7 @@ format branchAndMiscCtrl
       mask := slice{-}{11..10}
       sysm := slice{-}{7..0}
     case \m011111-_0-0 is #mrs Rd4
+      restrict slice{4..0}{13} to \m01111_0
       sysm := slice{-}{7..0}
     case \m0111010_0-0 is #hint32
       select slice{-}{10..0}
@@ -2963,17 +3097,28 @@ format loadStoreDualOrExclusive
          \m01_0-_010- is #exclusive
       Rt   := slice{-}{15..12} #Rt
       select slice{4}{-}
-        case 0 is #store
+        case 0 is #store -- store and loads are not symetric :/
+         select slice{8..7,5}{7..4}
+           case \m00_0_---- is #word 
+             imm10 := slice{-}{7..0} << 2 #imm10
+             Rd    := slice{-}{11..8}     #Rd
+           case \m01_0_0100 is #byte
+             restrict slice {-}{11..8} to \m1111
+             Rd    := slice{-}{3..0}     #Rd
+           case \m01_0_0101 is #halfword
+             restrict slice {-}{11..8} to \m1111
+             Rd    := slice{-}{3..0}     #Rd
+         end select
         case 1 is #load
-      end select
-      select slice{8..7,5}{7..4}
-        case \m00_0_---- is #word 
-          imm10 := slice{-}{7..0} << 2 #imm10
-          Rd    := slice{-}{11..8}     #Rd
-        case \m01_0_0100 is #byte
-          Rd    := slice{-}{3..0}     #Rd
-        case \m01_0_0101 is #halfword
-          Rd    := slice{-}{3..0}     #Rd
+         select slice{8..7,5}{7..4}
+           case \m00_0_---- is #word 
+             imm10 := slice{-}{7..0} << 2 #imm10
+             restrict slice {-}{11..8} to \m1111
+           case \m01_0_0100 is #byte
+             restrict slice {-}{11..8,3..0} to \m1111_1111
+           case \m01_0_0101 is #halfword
+             restrict slice {-}{11..8,3..0} to \m1111_1111
+         end select
       end select
     case \m0-_1-_---- or \m1-_--_---- is #dual
       select slice{4}{-}
@@ -3013,6 +3158,10 @@ end format
 
 format Rd4
   Rd := slice{-}{11..8} #Rd
+end format
+
+format Ra4
+  Ra := slice{-}{15..12} #Ra
 end format
 
 format dataProcImm12
@@ -3124,6 +3273,215 @@ syntax regList
   if regList{14} then "lr"  if regList{15..15} != 0 then ", " end if end if 
   if regList{15} then "pc"  end if
   "}"
+end syntax
+
+-- smull, div, umul, udiv, smlal, umlal
+syntax longMul
+  select
+    case #signed   "s"
+    case #unsigned "u"
+  end select
+  select
+    case #long #mul "mull\t" Ra4 ", " Rd4 ", " Rn4 ", " Rm4
+    case #long #div "div\t" Rd4 ", " Rn4 ", " Rm4
+    case #long #mul #acc "mlal\t" Ra4 ", " Rd4 ", " Rn4 ", " Rm4
+    case #long #mul #acc #halfword "mlal" halfwordPartRn halfwordPartRm "\t" Ra4 ", " Rd4 ", " Rn4 ", " Rm4
+    case #long #mul #acc #dual "mlald" mulSwap "\t" Ra4 ", " Rd4 ", " Rn4 ", " Rm4
+    case #long #mul #acc #dual #sub "mlsld" mulSwap "\t" Ra4 ", " Rd4 ", " Rn4 ", " Rm4
+    case #long #mul #acc #acc2 "maal\t" Ra4 ", " Rd4 ", " Rn4 ", " Rm4
+  end select
+  
+end syntax
+
+-- mla, mul, mls
+-- smlabb, smlabt, smlatb, smlatt
+-- smulbb, smulbt, smultb, smultt
+syntax mul
+  select
+    case #mul #acc       "mla"
+    case #mul #noAcc     "mul.w"
+    case #mul #sub #acc  "mls"
+    case #mul #signed #halfword "s"
+      select
+        case #acc   "mla"
+        case #noAcc "mul"
+      end select
+      halfwordPartRn
+      halfwordPartRm
+    case #mul #signed #dual "s"
+      select
+        case #acc   "mlad"
+        case #noAcc "muad"
+      end select
+      mulSwap
+    case #mul #signed #word #halfword "s"
+      select
+        case #acc   "mlaw"
+        case #noAcc "mulw"
+      end select
+      halfwordPartRm
+    case #mul #signed #sub #dual "s"
+      select
+        case #acc   "mlsd"
+        case #noAcc "musd"
+      end select
+      mulSwap
+    case #mul #signed #msw "s"
+      select
+        case #acc   "mmla"
+        case #noAcc "mmul"
+      end select
+      mulRound
+    case #mul #signed #sub #acc #msw "smmls" mulRound
+    case #unsigned #sum #diff
+      select
+        case #acc   "usada8"
+        case #noAcc "usad8"
+      end select
+  end select
+  "\t"   Rd4 ", " Rn4 ", " Rm4
+  select
+    case #acc   ", " Ra4
+    case #noAcc 
+  end select
+end syntax
+
+syntax mulRound
+  select
+    case #noRound
+    case #round   "r"
+  end select
+end syntax
+
+syntax mulSwap
+  select
+    case #noSwap
+    case #Swap   "x"
+  end select
+end syntax
+
+syntax halfwordPartRm
+  select
+    case #MB "b"
+    case #MT "t"
+  end select
+end syntax
+
+syntax halfwordPartRn
+  select
+    case #NB "b"
+    case #NT "t"
+  end select
+end syntax
+
+--clz
+syntax miscOpsCLZ #clz
+  "clz\t" Rd4 ", " Rn4
+end syntax
+
+--sel
+syntax miscOpsSEL #sel
+  "sel\t" Rd4 ", " Rn4 ", " Rm4
+end syntax
+
+-- rev, rev16, rbit, revsh
+syntax miscOpsRev #reverse
+  select
+    case #word             "rev.w"
+    case #halfword #packed "rev16.w"
+    case #bits             "rbit"
+    case #halfword #signed "revsh.w"
+  end select
+  "\t" Rd4 ", " Rn4
+end syntax
+
+--qadd, qdadd, qsub, qdsub
+syntax miscOpsSat #saturate
+  "q"
+  select
+    case #double "d"
+    case #noDouble
+  end select
+  select
+    case #add "add"
+    case #sub "sub"
+  end select
+  "\t" Rd4 ", " Rm4 ", " Rn4
+end syntax
+
+-- p.151: 
+-- sadd16 , sasx , ssax , ssub16 , sadd8 , ssub8 ,
+-- qadd16 , qasx , qsax , qsub16 , qadd8 , qsub8 ,
+-- shadd16, shasx, shsax, shsub16, shadd8, shsub8,
+syntax parallelAddSub #parallel
+  select
+    case #signed   #normal   "s"
+    case #signed   #saturate "q"
+    case #signed   #halving  "sh"
+    case #unsigned #normal   "u"
+    case #unsigned #saturate "uq"
+    case #unsigned #halving  "uh"
+  end select
+  select
+    case #add16  "add16"
+    case #addsub "asx"
+    case #subadd "sax"
+    case #sub16  "sub16"
+    case #add8   "add8"
+    case #sub8   "sub8"
+  end select
+  "\t" Rd4 ", " Rn4 ", " Rm4
+end syntax
+
+-- sxtah, sxth, uxtah, uxth, sxtab16, sxtb16, uxtab16, uxtb16, sxtab, sxtb, uxtab, uxtb
+syntax extendDataProcRegister #extend
+  select
+    case #unsigned "uxt"
+    case #signed   "sxt"
+  end select
+  select
+    case #add     "a"
+    case #noAdd   --nothing
+  end select
+  select
+    case #halfword "h"
+    case #byte16   "b16"
+    case #byte     "b"
+  end select
+  -- objdump restriction ('.w' not added all the time) 
+  select 
+    case #unsigned #add   #halfword "\t"
+    case #unsigned #add   #byte16   "\t"
+    case #unsigned #add   #byte     "\t"
+    case #unsigned #noAdd #halfword ".w\t"
+    case #unsigned #noAdd #byte16   "\t"
+    case #unsigned #noAdd #byte     ".w\t"
+    case #signed   #add   #halfword "\t"
+    case #signed   #add   #byte16   "\t"
+    case #signed   #add   #byte     "\t"
+    case #signed   #noAdd #halfword ".w\t"
+    case #signed   #noAdd #byte16   "\t"
+    case #signed   #noAdd #byte     ".w\t"
+  end select
+  Rd4
+  select --Rn only in case of addition.
+    case #add     ", " Rn4
+    case #noAdd   #Rn 
+  end select
+  ", " Rm4
+  field u5 rotate
+  if rotate != 0 then ", ror #\d",rotate end if
+end syntax
+
+syntax logicalOpDataProcRegister -- lsl.w, lsr.w, ...
+  select
+    case #lsl "lsl"
+    case #lsr "lsr"
+    case #asr "asr"
+    case #ror "ror"
+  end select
+  field u1 setFlags if setFlags then "s" end if
+  ".w\t" Rd4 ", " Rn4 ", " Rm4
 end syntax
 
 syntax wback field u1 W if W then "!" end if end syntax -- Write back
@@ -3244,12 +3602,17 @@ end syntax
 syntax loadStoreExclusive #exclusive
   select
     case #load  "ldrex"
+      select
+        case #word      "\t" Rt4 regImm10
+        case #halfword "h\t" Rt4 ", [" Rn4 "]"
+        case #byte     "b\t" Rt4 ", [" Rn4 "]"
+      end select
     case #store "strex"
-  end select
-  select
-    case #word      "\t" Rd4 ", " Rt4 regImm10
-    case #halfword "h\t" Rd4 ", " Rt4 ", [" Rn4 "]"
-    case #byte     "b\t" Rd4 ", " Rt4 ", [" Rn4 "]"
+      select
+        case #word      "\t" Rd4 ", " Rt4 regImm10
+        case #halfword "h\t" Rd4 ", " Rt4 ", [" Rn4 "]"
+        case #byte     "b\t" Rd4 ", " Rt4 ", [" Rn4 "]"
+      end select
   end select
 end syntax
 
@@ -3393,7 +3756,7 @@ end syntax
 syntax dataProcBitFieldExtract #dataProcessingPI #ubfx
   field u5 lsb
   field u5 widthm1
-  "ubfx\t" Rd4 ", " Rn4 ", #\d, #\d",lsb,widthm1 
+  "ubfx\t" Rd4 ", " Rn4 ", #\d, #\d",lsb,widthm1+1
 end syntax
 
 syntax dataProcSSAT #dataProcessingPI 
@@ -3401,8 +3764,8 @@ syntax dataProcSSAT #dataProcessingPI
   select
     case #ssat   "ssat\t"   Rd4 ", #\d, ",sat_imm5+1 Rn4 shiftType
     case #ssat16 "ssat16\t" Rd4 ", #\d, ",sat_imm5+1 Rn4
-    case #usat   "usat\t"   Rd4 ", #\d, ",sat_imm5+1 Rn4 shiftType
-    case #usat16 "usat16\t" Rd4 ", #\d, ",sat_imm5+1 Rn4
+    case #usat   "usat\t"   Rd4 ", #\d, ",sat_imm5 Rn4 shiftType
+    case #usat16 "usat16\t" Rd4 ", #\d, ",sat_imm5 Rn4
   end select
 end syntax
 
@@ -3505,6 +3868,7 @@ syntax specRegMRS --ugly, but objdump compatible.
   elseif sysm{6..0} = \x13  then "FAULTMASK"
   elseif sysm{6..0} = \x14  then "CONTROL"
   elseif sysm{5..4} = \x3  then "SP_hyp"
+  elseif sysm{5..4} = \x2  then "LR_usr"
   end if
   
   if sysm >= \x80 && sysm < \x98 then "_NS" end if 
@@ -4030,9 +4394,18 @@ syntax Rt2_4  #Rt2
     end if
 end syntax
 
+syntax Ra4  #Ra 
+		field u4 Ra
+		if     Ra=15 then "pc" 
+		elseif Ra=14 then "lr"
+		elseif Ra=13 then "sp"
+		else   "r\d",Ra
+    end if
+end syntax
+
 syntax Rd4  #Rd 
 		field u4 Rd 
-		if    Rd =15 then "pc" 
+		if     Rd=15 then "pc" 
 		elseif Rd=14 then "lr"
 		elseif Rd=13 then "sp"
 		else   "r\d",Rd
