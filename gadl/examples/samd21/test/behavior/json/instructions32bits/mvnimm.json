@@ -17,14 +17,14 @@
 		},
 
                  "Rd": {
-			"idx": ["r1","r5","r9"],
+			"idx": ["r1","r9"],
 			"val": [0, 12334, "0xffffffff"]
 		}			
 	},
 
 	"init":
 	{
-		"sp": "0x8",
+		"sp": "0x20003000",
 		"lr": "0xdead"
 	},
 	"mnemo": "mvn.w {Rd}, #{const} ",

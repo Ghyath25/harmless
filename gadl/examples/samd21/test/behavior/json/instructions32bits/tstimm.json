@@ -1,16 +1,16 @@
 {
-	"instruction": "TST Rn, #const",
+	"instruction": "tst Rn, #const",
 	"src":
 	{            	
                 "Rn" : {
 			
-                        "idx": ["r0","r2","r7"],			
+                        "idx": ["r0","r7"],			
                         "val": ["0", "0xffffffff", "0xac533c5a", "0xaaaa5555"]
 		},                
 
                 "const" : {
 			
-			"imm": ["0x0", "0x7","0xac", "0xff"]
+			"imm": ["0","0x0000007a","0x007a007a" ,"0x7a007a00","0x7a7a7a7a","0xfa000000","0x7d000000", "0x3e800000","0x1f400000","0x000007d0","0x000003e8","0x000001f4"]
                 }
 	},
 	
@@ -23,10 +23,10 @@
 
 	"init":
 	{
-		"sp": "0x8",
+		"sp": "0x20003000",
 		"lr": "0xdead"
 	},
-	"mnemo": "TST {Rn}, #{const} ",
+	"mnemo": "tst {Rn}, #{const} ",
 	"size": 4
 }
 
