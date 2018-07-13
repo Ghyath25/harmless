@@ -80,3 +80,41 @@ Ok le 15/5/18.
 ```
 
 #En cours
+
+Data processing (register) p.150
+
+ * lsl, lsr, asr, ror
+ * sxtah, sxth, uxtah, uxth, sxtab16, sxtb16, uxtab16, uxtb16, sxtab, sxtb, uxtab, uxtb
+ * parallel addtion ans subtraction (signed/unsigned)
+ * misc saturating
+ * misc rev
+ * misc sel, clz
+**not all tested: this should be 0xfaf.. instead of 0xfab.. because of crc32 related instructions.**
+
+```
+./manyTests.py -v -fr 0xfa000000 -tr 0xfabfffff
+```
+
+Multiply
+
+ * mla, mul, mls
+ * smlabb, smlabt, smlatb, smlatt
+ * smulbb, smulbt, smultb, smultt
+ * smlad, smladx, smuad, smuadx
+ * smlawb, smlawt, smulwb, smulwt
+ * smlsd, smlsdx, smusd, smusdx
+ * smmla, smmlar, smmul, smmulr
+ * smmls, smmlsr
+ * usada8, usad8
+```
+./manyTests.py -v -fr 0xfb000000 -tr 0xfb7fffff
+```
+
+Long multiply
+
+ * smull, sdiv, umull, udiv
+ * smlal, smlalbb smlalbt, smlaltb, smlaltt, smlald, smlaldx
+ * smlsld, smlsldx, umlal, umaal
+```
+./manyTests.py -v -fr 0xfb800000 -tr 0xfbcfffff
+```
