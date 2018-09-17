@@ -57,21 +57,21 @@ u32 zeros(u32 integer)
 --BitCount
 u32 BitCount (u32 x)
 {
-u32 i:=0
-u32 result:=0
-loop 32 do 
-if x{i}=1 then
-result:=result+1
-end if  
-i:=i+1
-end loop
-return result  
+	u32 i:=0
+	u32 result:=0
+	loop 32 do 
+	if x{i}=1 then
+	result:=result+1
+	end if  
+	i:=i+1
+	end loop
+	return result  
 }
 --------------------------------------------------------------------------------
 --SInt
 u32 SInt(u32 x)
 {
-return x
+	return x
 }
 -------------------------------------------------------------------------------
 --UInt
@@ -82,21 +82,21 @@ u32 UInt (u32 x)
 -------------------------------------------------------------------------------
 s32 SignInvert (s32 x) 
 { 
-u32 i:=0
-s32 a
-loop 32 
-while (u1)(x{i}) != 1 do 
-i:=i+1
-end loop
-a:=x{i..0}
+	u32 i:=0
+	s32 a
+	loop 32 
+		while (u1)(x{i}) != 1 do 
+		i:=i+1
+	end loop
 
-i:=i+1
-loop 32-i do 
-a:=(~x{i}) cat a 
-i:=i+1
-end loop 
+	a:=x{i..0}
+	i:=i+1
 
-return a
+	loop 32-i do 
+		a:=(~x{i}) cat a 
+		i:=i+1
+	end loop 
+	return a
 }
 -------------------------------------------------------------------------------
 --LSL_C
@@ -105,17 +105,13 @@ u33 LSL_C(u32 x, u32 shift)
 { u32 result 
   u1 carry_out
   u32 extended_x
-  --u32 a
-	u32 n 
---shift>0?
+ 	u32 n 
 	
-	--a:=alu.zeros(shift) --zeros 
-
 	extended_x:= x<<shift 
 	result:= extended_x{31..0}
 	carry_out:=extended_x{32}
 
-return result cat carry_out
+	return result cat carry_out
 } 
 -------------------------------------------------------------------------------
 --LSL
@@ -124,7 +120,6 @@ u32 LSL(u32 x, u32 shift)
 { u32 result 
   u32 a
 	
---shift>0?
 	if shift=0 then result:=x 
 	else result:= alu.LSL_C(x, shift){32..1}
 	end if 
@@ -140,7 +135,8 @@ u33 LSR_C(u32 x, u32 shift)
 
  loop shift do 	
  extended_x:= extended_x cat (u1)(0)
- end loop 		
+ end loop 
+		
  result:= extended_x{shift+31..shift}
  carry_out:=extended_x{shift-1}
 
@@ -150,26 +146,26 @@ u33 LSR_C(u32 x, u32 shift)
 --LSR
 u32 LSR(u32 x, u32 shift)
 { u32 result 
-    --shift>0?
-if shift=0 then result:=x
-else
-result:=alu.LSR_C(x,shift){32..1}
-end if 	
-return result 
+	if shift=0 then result:=x
+	else
+	result:=alu.LSR_C(x,shift){32..1}
+	end if 	
+	return result 
 }
 ------------------------------------------------------------------------------
 --ASR_C
 u33 ASR_C(u32 x, u32 shift)
 { u32 result 
   u1 carry_out
-  u64 extended_x --comment peut-on fixer la longueur de cette opérande 
-  --shift>0?
- u32 a:=x{32}
- u32 b  
+  u64 extended_x  
+ 	u32 a:=x{32}
+	u32 b  
+
  loop shift do 
- b:=b cat a 
+ 	b:=b cat a 
  end loop   
- extended_x:= b cat x --X considéré comme unsigned 
+
+ extended_x:= b cat x  
  result:= extended_x{shift+31..shift}
  carry_out:=extended_x{shift-1}
 
@@ -179,12 +175,13 @@ return result cat carry_out
 --ASR
 u32 ASR(u32 x, u32 shift)
 { u32 result 
-    --shift>0?
-if shift=0 then result:=x
-else
-result:=alu.ASR_C(x,shift){32..1}
-end if 	
-return result 
+
+	if shift=0 then result:=x
+	else
+		result:=alu.ASR_C(x,shift){32..1}
+	end if 	
+
+	return result 
 }
 ------------------------------------------------------------------------------
 --ROR_C
@@ -195,23 +192,24 @@ u33 ROR_C(u32 x, u32 shift)
  u32 result  
 
 	m:=shift % 32
- result:= alu.LSR(x,m) | alu.LSL(x,32-m)
- carry_out:=result{31}
+	result:= alu.LSR(x,m) | alu.LSL(x,32-m)
+  carry_out:=result{31}
 
-return result cat carry_out
-
+	return result cat carry_out
 }
 ------------------------------------------------------------------------------
 --ROR
 u32 ROR(u32 x, u32 shift)
 { 
- u32 result  
-if shift=0 then 
-result:=x
-else 
-result:=alu.ROR_C(x,shift){32..1}
-end if 
-return result
+ 	u32 result  
+
+	if shift=0 then 
+	result:=x
+	else 
+	result:=alu.ROR_C(x,shift){32..1}
+	end if 
+
+	return result
 }
 ------------------------------------------------------------------------------ 
 --RRX_C
@@ -219,44 +217,42 @@ u33 RRX_C(u32 x, u1 carry_in)
 { u32 result
   u1 carry_out
   
-result:= carry_in cat x{31..1}
-carry_out:=x{0}
+	result:= carry_in cat x{31..1}
+	carry_out:=x{0}
 
-return result cat carry_out
+	return result cat carry_out
 }
 -------------------------------------------------------------------------------
 --RRX
 u32 RRX(u32 x, u1 carry_in)
 { u32 result
   
-result:= alu.RRX_C(x,carry_in)
+	result:= alu.RRX_C(x,carry_in)
 
-return result
+	return result
 }
 ------------------------------------------------------------------------------
 --SignedSatQ
 s32 SignedSatQ(s32 i, u32 n)
 {  
  u1 saturated
-
  s32 result
  s32 a:= (s1)(1) << (n-1) 
+
  if i>a-(s1)(1) then 
- result:= a-(s1)(1)
- saturated:= 1
-
- elseif i< alu.SignInvert(a) then 
- result:= alu.SignInvert(a)
- saturated:=1 
-
- else  
- result:=i 
- saturated:=0
+ 	result:= a-(s1)(1)
+ 	saturated:= 1
+ 	elseif i< alu.SignInvert(a) then 
+ 	result:= alu.SignInvert(a)
+ 	saturated:=1 
+ 	else  
+ 	result:=i 
+ 	saturated:=0
  end if 
 
-  if saturated=1 then 
-  CPSR.Q:=1
-  end if 
+ if saturated=1 then 
+ 	CPSR.Q:=1
+ end if 
 
  return result
 }
@@ -265,9 +261,9 @@ s32 SignedSatQ(s32 i, u32 n)
 s16 SignedSatQ16(s16 i, u16 n)
 {  
  u1 saturated
-
  s16 result
- s16 a:= (s1)(1) << (n-1) 
+ s16 a:= (s1)(1) << (n-1)
+ 
  if i>a-(s1)(1) then 
  result:= a-(s1)(1)
  saturated:=1
@@ -285,7 +281,7 @@ s16 SignedSatQ16(s16 i, u16 n)
 	CPSR.Q:=1
 	end if 
 
- return result 
+ 	return result 
 }
 ------------------------------------------------------------------------------
 --UnsignedSatQ  
@@ -294,6 +290,7 @@ u32 UnsignedSatQ(u32 i, u32 n)
  u1 saturated
  u32 result
  u32 a:= 1<< n
+
  if i>(a-1) then 
  result:= a-1
  saturated:= true
@@ -307,8 +304,8 @@ u32 UnsignedSatQ(u32 i, u32 n)
  saturated:=false
  end if  
 
- if saturated then 
-	CPSR.Q:=1
+ 	if saturated then 
+		CPSR.Q:=1
 	end if
 
  
@@ -321,6 +318,7 @@ u16 UnsignedSatQ16(u16 i, u16 n)
  u1 saturated
  u16 result
  u16 a:= 1<< n
+
  if i>(a-1) then 
  result:= a-1
  saturated:= true
@@ -339,55 +337,47 @@ u16 UnsignedSatQ16(u16 i, u16 n)
 	end if
 
  return result
-
 }
 ------------------------------------------------------------------------------
 --UnsignedSat16
 u16 UnsignedSat16(u16 i, u16 n)
 {
-u16 result 
-result:= alu.UnsignedSatQ16(i,n)
-return result
+	u16 result 
+
+	result:= alu.UnsignedSatQ16(i,n)
+
+	return result
 } 
-------------------------------------------------------------------------------
---ThumbExpandImm
--- u32 ThumbExpandImm(u12 imm12)
--- {
--- u32 imm32
--- imm32:=alu.ThumbExpandImmWithCarry(imm12){33..1}
--- return imm32
--- }
 
 ---------------------------------------------------------------------------
 --DecodeImmShift
-
 u34 DecodeImmShift (u2 t , u5 imm5)
 {
-u2 shift_t
-u32 shift_n
- if t=0 then 
-  shift_t:=0
-  shift_n:=alu.UInt(imm5)
- elseif t=1 then 
-  shift_t:= 1
-  if imm5=0 then 
-  shift_n:=32 
-  else shift_n:=alu.UInt(imm5) 
-  end if
-  
- elseif t=2 then 
-  shift_t:=2
-  if imm5=0 then 
-  shift_n:=32 
-  else shift_n:=alu.UInt(imm5) 
-  end if
+	u2 shift_t
+	u32 shift_n
+
+ 	if t=0 then 
+  	shift_t:=0
+  	shift_n:=alu.UInt(imm5)
+ 	elseif t=1 then 
+  	shift_t:= 1
+  	if imm5=0 then 
+  		shift_n:=32 
+  		else shift_n:=alu.UInt(imm5) 
+  	end if
+  elseif t=2 then 
+  	shift_t:=2
+ 		if imm5=0 then 
+ 			shift_n:=32 
+		else shift_n:=alu.UInt(imm5) 
+  	end if
  elseif t=3 then 
   if imm5=0 then 
-  shift_t:=3
-  shift_n:=1
+  	shift_t:=3
+  	shift_n:=1
   else 
-  shift_t:=4 
-  shift_n:=alu.UInt(imm5)
+  	shift_t:=4 
+  	shift_n:=alu.UInt(imm5)
   end if 
  end if 
 
@@ -397,97 +387,99 @@ return shift_t cat shift_n
 --Shift_C
 u33 Shift_C(u32 value, u2 typ, u32 amount, u1 carry_in)
 {
-u32 result 
-u1 carry_out 
+	u32 result 
+	u1 carry_out 
 
-if amount=0 then 
-result:= value 
-carry_out:= carry_in
-else 
- if typ=0 then 
- result := alu.LSL_C(value, amount){32..1}
- carry_out:= alu.LSL_C(value, amount){0}
- elseif typ=1 then 
- result:= alu.LSR_C(value, amount){32..1}
- carry_out:= alu.LSR_C(value, amount){0}
- elseif typ=2 then 
- result:= alu.ASR_C(value, amount){32..1}
- carry_out:= alu.ASR_C(value, amount){0}
- elseif typ=3 then 
- result:= alu.ROR_C(value, amount){32..1}
- carry_out:= alu.ROR_C(value, amount){0}
- elseif typ=4 then 
- result:= alu.RRX_C(value,carry_in){32..1}
- carry_out:= alu.RRX_C(value,carry_in){0}
- end if 
-end if 
+	if amount=0 then 
+		result:= value 
+		carry_out:= carry_in
+	else
+	if typ=0 then 
+		result := alu.LSL_C(value, amount){32..1}
+ 		carry_out:= alu.LSL_C(value, amount){0}
+ 	elseif typ=1 then 
+ 		result:= alu.LSR_C(value, amount){32..1}
+ 		carry_out:= alu.LSR_C(value, amount){0}
+ 	elseif typ=2 then 
+ 		result:= alu.ASR_C(value, amount){32..1}
+ 		carry_out:= alu.ASR_C(value, amount){0}
+ 	elseif typ=3 then 
+ 	result:= alu.ROR_C(value, amount){32..1}
+ 	carry_out:= alu.ROR_C(value, amount){0}
+ 	elseif typ=4 then 
+	result:= alu.RRX_C(value,carry_in){32..1}
+	carry_out:= alu.RRX_C(value,carry_in){0}
+	end if 
+	end if 
 
-return result cat carry_out
+	return result cat carry_out
 
 }
 ------------------------------------------------------------------------------
 --Shift 
 u32 Shift(u32 value, u2 typ, u32 amount, u1 carry_in)
-{u32 result
-result:=alu.Shift_C(value, typ, amount, carry_in){32..1}
-return result 
+{	u32 result
+
+	result:=alu.Shift_C(value, typ, amount, carry_in){32..1}
+
+	return result 
 }
 ------------------------------------------------------------------------------
 --AddWithCarry
 u34 AddWithCarry(u32 x, u32 y, u1 carry_in)
 {
-u32 unsigned_sum
-u32 signed_sum
-u32 result
-u1 carry_out
-u1 overflow  
+	u32 unsigned_sum
+	u32 signed_sum
+	u32 result
+	u1 carry_out
+	u1 overflow  
 
- unsigned_sum:= x + y + carry_in
- signed_sum:=(u32)((s32)(x) + (s32)(y) + (s1)(carry_in))
- result:= unsigned_sum{31..0}
+ 	unsigned_sum:= x + y + carry_in
+ 	signed_sum:=(u32)((s32)(x) + (s32)(y) + (s1)(carry_in))
+ 	result:= unsigned_sum{31..0}
 
- if alu.UInt(result)=unsigned_sum then 
- carry_out:=0
- else
- carry_out:=1
- end if 
+ 	if alu.UInt(result)=unsigned_sum then 
+ 		carry_out:=0
+ 	else
+ 		carry_out:=1
+ 	end if 
 
- if alu.SInt(result)=signed_sum then 
- overflow:=0
- else  
- overflow:=1
- end if 
+ 	if alu.SInt(result)=signed_sum then 
+ 		overflow:=0
+ 	else  
+ 		overflow:=1
+ 	end if 
 
-return result cat carry_out cat overflow
+	return result cat carry_out cat overflow
 }
 ------------------------------------------------------------------------------
 --Align
 u32 Align(u32 x, u32 y)
 {
-u32 result:=y * (alu.UInt(x) % alu.UInt(y)){31..0}
-return result
+	u32 result:=y * (alu.UInt(x) % alu.UInt(y)){31..0}
+
+	return result
 }
 -----------------------------------------------------------------------------
 --InEndianReverse 
 u32 InEndianReverse(u32 value, u32 n)
 {
-u32 result
-if n=1 then 
-result{7..0}:=value{7..0}
+	u32 result
 
-elseif n=2 then 
-result{15..8}:=value{7..0}
-result{7..0}:=value{15..8}
-elseif n=4 then 
-result{31..24}:=value{7..0}
-result{23..16}:=value{15..8}
-result{15..8}:=value{23..16}
-result{7..0}:=value{31..24}
-end if 
+	if n=1 then 
+		result{7..0}:=value{7..0}
+	elseif n=2 then 
+		result{15..8}:=value{7..0}
+		result{7..0}:=value{15..8}
+	elseif n=4 then 
+		result{31..24}:=value{7..0}
+		result{23..16}:=value{15..8}
+		result{15..8}:=value{23..16}
+		result{7..0}:=value{31..24}
+	end if 
 
-return result
+	return result
 }
-
 ------------------------------------------------------------------------------
 ------------------------------------------------------------------------------
   u1 conditionPassed(u4 cond)
@@ -1555,7 +1547,7 @@ end select
 end behavior
 -----------------------------------------------------------------
 --bfc,bfi 
-behavior bfcbfiimm #dataProcessingPI
+behavior bfcbfi #dataProcessingPI
  field u4 Rd #Rd  
  field u5 lsb 
  field u5 msb 
@@ -1588,7 +1580,7 @@ end select
 
 end behavior 
 -----------------------------------------------------------------
---ubfximm 
+--ubfx 
 behavior ubfximm #dataProcessingPI #ubfx 
  field u4 Rd #Rd
  field u4 Rn #Rn
@@ -2066,7 +2058,6 @@ behavior ldrbimmt3ldrsbimmt2 #ldr #byte
 	end do 
 
 end behavior
-
 --------------------------------------------------------------
 --ldrbt//ldrbst 	
 behavior ldrbtldrbst #ldrt #byte #add
@@ -2623,9 +2614,9 @@ behavior shaddshsub8 #halving #normal
 
 end behavior
 -----------------------------------------------------------------
--- faire la partie unsigned 
+-- unsigned 
 -----------------------------------------------------------------
---p154
+--mlamul p154
 behavior mlamul #mul #Rd #Rn #Rm
 	field u4 Rn 
 	field u4 Rd 
@@ -2682,7 +2673,7 @@ behavior mls #mul #sub #acc #Rd #Rn #Rm #Ra
 end behavior
 -----------------------------------------------------------------
 --smlabb,smlabt,smlatb,smlatt//smulbb,smulbt,smultb,smultt
-behavior smlabb #mul #signed #halfword #Rn #Rd #Rm
+behavior smlabbsmlabt #mul #signed #halfword #Rn #Rd #Rm
 	field u4 Rn 
 	field u4 Rd 
 	field u4 Rm
@@ -2970,10 +2961,12 @@ behavior sdiv #long #div #Rn #Rm #Rd
 	field u4 Rd
 	field u4 Rm
 	u64 result 
+
 	do 
 		result:=gpr.iread32(Rn)/gpr.iread32(Rm)
 		gpr.write32(Rd, result{31..0})--pb de round 
 	end do 
+
 	end behavior 
 ----------------------------------------------------
 --smlal//umlal
